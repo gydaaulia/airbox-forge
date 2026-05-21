@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 
 const ModulesRoute = ModulesRouteImport.update({
   id: '/modules',
@@ -28,34 +29,42 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BundlesBundleIdRoute = BundlesBundleIdRouteImport.update({
+  id: '/$bundleId',
+  path: '/$bundleId',
+  getParentRoute: () => BundlesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/bundles': typeof BundlesRoute
+  '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/bundles': typeof BundlesRoute
+  '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/bundles': typeof BundlesRoute
+  '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bundles' | '/modules'
+  fullPaths: '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bundles' | '/modules'
-  id: '__root__' | '/' | '/bundles' | '/modules'
+  to: '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
+  id: '__root__' | '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BundlesRoute: typeof BundlesRoute
+  BundlesRoute: typeof BundlesRouteWithChildren
   ModulesRoute: typeof ModulesRoute
 }
 
@@ -82,12 +91,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bundles/$bundleId': {
+      id: '/bundles/$bundleId'
+      path: '/$bundleId'
+      fullPath: '/bundles/$bundleId'
+      preLoaderRoute: typeof BundlesBundleIdRouteImport
+      parentRoute: typeof BundlesRoute
+    }
   }
 }
 
+interface BundlesRouteChildren {
+  BundlesBundleIdRoute: typeof BundlesBundleIdRoute
+}
+
+const BundlesRouteChildren: BundlesRouteChildren = {
+  BundlesBundleIdRoute: BundlesBundleIdRoute,
+}
+
+const BundlesRouteWithChildren =
+  BundlesRoute._addFileChildren(BundlesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BundlesRoute: BundlesRoute,
+  BundlesRoute: BundlesRouteWithChildren,
   ModulesRoute: ModulesRoute,
 }
 export const routeTree = rootRouteImport
