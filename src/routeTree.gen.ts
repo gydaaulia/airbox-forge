@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModulesRoute = ModulesRouteImport.update({
   id: '/modules',
   path: '/modules',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesById {
@@ -52,24 +60,39 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
   '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
+  fullPaths: '/' | '/bundles' | '/modules' | '/templates' | '/bundles/$bundleId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
-  id: '__root__' | '/' | '/bundles' | '/modules' | '/bundles/$bundleId'
+  to: '/' | '/bundles' | '/modules' | '/templates' | '/bundles/$bundleId'
+  id:
+    | '__root__'
+    | '/'
+    | '/bundles'
+    | '/modules'
+    | '/templates'
+    | '/bundles/$bundleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BundlesRoute: typeof BundlesRouteWithChildren
   ModulesRoute: typeof ModulesRoute
+  TemplatesRoute: typeof TemplatesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/modules': {
       id: '/modules'
       path: '/modules'
@@ -116,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BundlesRoute: BundlesRouteWithChildren,
   ModulesRoute: ModulesRoute,
+  TemplatesRoute: TemplatesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
