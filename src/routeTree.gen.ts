@@ -9,38 +9,134 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as ModulesRouteImport } from './routes/modules'
+import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModulesRoute = ModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BundlesRoute = BundlesRouteImport.update({
+  id: '/bundles',
+  path: '/bundles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BundlesBundleIdRoute = BundlesBundleIdRouteImport.update({
+  id: '/$bundleId',
+  path: '/$bundleId',
+  getParentRoute: () => BundlesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bundles': typeof BundlesRouteWithChildren
+  '/companies': typeof CompaniesRoute
+  '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bundles': typeof BundlesRouteWithChildren
+  '/companies': typeof CompaniesRoute
+  '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bundles': typeof BundlesRouteWithChildren
+  '/companies': typeof CompaniesRoute
+  '/modules': typeof ModulesRoute
+  '/templates': typeof TemplatesRoute
+  '/bundles/$bundleId': typeof BundlesBundleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bundles'
+    | '/companies'
+    | '/modules'
+    | '/templates'
+    | '/bundles/$bundleId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/bundles'
+    | '/companies'
+    | '/modules'
+    | '/templates'
+    | '/bundles/$bundleId'
+  id:
+    | '__root__'
+    | '/'
+    | '/bundles'
+    | '/companies'
+    | '/modules'
+    | '/templates'
+    | '/bundles/$bundleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BundlesRoute: typeof BundlesRouteWithChildren
+  CompaniesRoute: typeof CompaniesRoute
+  ModulesRoute: typeof ModulesRoute
+  TemplatesRoute: typeof TemplatesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modules': {
+      id: '/modules'
+      path: '/modules'
+      fullPath: '/modules'
+      preLoaderRoute: typeof ModulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bundles': {
+      id: '/bundles'
+      path: '/bundles'
+      fullPath: '/bundles'
+      preLoaderRoute: typeof BundlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bundles/$bundleId': {
+      id: '/bundles/$bundleId'
+      path: '/$bundleId'
+      fullPath: '/bundles/$bundleId'
+      preLoaderRoute: typeof BundlesBundleIdRouteImport
+      parentRoute: typeof BundlesRoute
+    }
   }
 }
 
+interface BundlesRouteChildren {
+  BundlesBundleIdRoute: typeof BundlesBundleIdRoute
+}
+
+const BundlesRouteChildren: BundlesRouteChildren = {
+  BundlesBundleIdRoute: BundlesBundleIdRoute,
+}
+
+const BundlesRouteWithChildren =
+  BundlesRoute._addFileChildren(BundlesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BundlesRoute: BundlesRouteWithChildren,
+  CompaniesRoute: CompaniesRoute,
+  ModulesRoute: ModulesRoute,
+  TemplatesRoute: TemplatesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
