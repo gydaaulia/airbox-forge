@@ -46,6 +46,36 @@ export interface Subscription {
   created_at: string;
 }
 
+// ============== RBAC ==============
+export type CrudAction = "create" | "read" | "update" | "delete";
+export const SPECIAL_ACTIONS = [
+  "approve",
+  "export",
+  "import",
+  "publish",
+  "assign",
+  "configure",
+] as const;
+export type SpecialAction = (typeof SPECIAL_ACTIONS)[number];
+
+export interface ModulePermission {
+  module_id: string;
+  create: boolean;
+  read: boolean;
+  update: boolean;
+  delete: boolean;
+  special: SpecialAction[];
+}
+
+export interface Role {
+  id: string;
+  bundle_id: string;
+  name: string;
+  description: string;
+  is_default: boolean;
+  permissions: ModulePermission[];
+}
+
 const nameToId = (name: string) => slugify(name);
 
 function buildSeedModules(): Module[] {
@@ -163,11 +193,101 @@ function seedCompanies(): Company[] {
   ];
 }
 
+function fullPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
+    special: [...SPECIAL_ACTIONS],
+  }));
+}
+
+function readOnlyPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: false,
+    read: true,
+    update: false,
+    delete: false,
+    special: [],
+  }));
+}
+
+function approverPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: false,
+    read: true,
+    update: true,
+    delete: false,
+    special: ["approve"] as SpecialAction[],
+  }));
+}
+
+const ROLE_BLUEPRINTS: Record<string, Array<{ name: string; description: string; mode: "full" | "read" | "approver" }>> = {
+  BASIC_HRIS: [
+    { name: "HR Admin", description: "Full access to HR data.", mode: "full" },
+    { name: "Manager", description: "Approves leave & reviews team.", mode: "approver" },
+    { name: "Employee", description: "Self-service access only.", mode: "read" },
+  ],
+  ENT_HRIS: [
+    { name: "HR Admin", description: "Full HR & Payroll access.", mode: "full" },
+    { name: "Payroll Officer", description: "Manage payroll & taxes.", mode: "full" },
+    { name: "Manager", description: "Team approvals & reviews.", mode: "approver" },
+    { name: "Employee", description: "Personal data only.", mode: "read" },
+  ],
+  ACC_START: [
+    { name: "Finance Admin", description: "Full ledger & reporting access.", mode: "full" },
+    { name: "Accountant", description: "Day-to-day bookkeeping.", mode: "approver" },
+    { name: "Auditor", description: "Read-only access.", mode: "read" },
+  ],
+  LOG_PRO: [
+    { name: "Operations Admin", description: "Full ops oversight.", mode: "full" },
+    { name: "Dispatcher", description: "Bookings & shipments.", mode: "approver" },
+    { name: "Driver", description: "Trip log only.", mode: "read" },
+  ],
+  FULL_ERP: [
+    { name: "Super Admin", description: "Owner of the tenant.", mode: "full" },
+    { name: "Department Manager", description: "Approves cross-module workflows.", mode: "approver" },
+    { name: "Staff", description: "Daily transactional usage.", mode: "read" },
+  ],
+};
+
+function seedRoles(bundles: Bundle[]): Role[] {
+  const out: Role[] = [];
+  for (const b of bundles) {
+    const blueprint = ROLE_BLUEPRINTS[b.code] ?? [
+      { name: "Admin", description: "Full access.", mode: "full" as const },
+      { name: "Member", description: "Read-only access.", mode: "read" as const },
+    ];
+    for (const r of blueprint) {
+      const perms =
+        r.mode === "full"
+          ? fullPerm(b.module_ids)
+          : r.mode === "read"
+            ? readOnlyPerm(b.module_ids)
+            : approverPerm(b.module_ids);
+      out.push({
+        id: uid(),
+        bundle_id: b.id,
+        name: r.name,
+        description: r.description,
+        is_default: true,
+        permissions: perms,
+      });
+    }
+  }
+  return out;
+}
+
 interface AirboxState {
   modules: Module[];
   bundles: Bundle[];
   companies: Company[];
   subscriptions: Subscription[];
+  roles: Role[];
 
   // Modules
   importModules: (json: string) => { added: number; error?: string };
@@ -188,6 +308,20 @@ interface AirboxState {
   assignBundle: (companyId: string, bundleId: string, activeUntil: string) => void;
   bulkAssign: (companyIds: string[], bundleId: string, activeUntil: string) => void;
   cancelSubscription: (subId: string) => void;
+
+  // RBAC
+  createRole: (bundleId: string, name: string, description?: string) => string;
+  updateRole: (id: string, patch: Partial<Pick<Role, "name" | "description">>) => void;
+  deleteRole: (id: string) => void;
+  duplicateRole: (id: string) => string | undefined;
+  setPermission: (
+    roleId: string,
+    moduleId: string,
+    patch: Partial<Omit<ModulePermission, "module_id">>,
+  ) => void;
+  bulkSetCrud: (roleId: string, action: CrudAction, value: boolean) => void;
+  applyRoleTemplate: (roleId: string, mode: "full" | "read" | "approver" | "none") => void;
+  syncRolesWithBundle: (bundleId: string) => void;
 
   // Helpers
   resolveDependencies: (moduleIds: string[]) => { resolved: string[]; missing: string[] };
@@ -224,6 +358,7 @@ export const useAirbox = create<AirboxState>()(
         bundles,
         companies,
         subscriptions: initialSubs,
+        roles: seedRoles(bundles),
 
         importModules: (json) => {
           try {
@@ -392,6 +527,135 @@ export const useAirbox = create<AirboxState>()(
             ),
           }),
 
+
+        createRole: (bundleId, name, description = "") => {
+          const id = uid();
+          const bundle = get().bundles.find((b) => b.id === bundleId);
+          const perms: ModulePermission[] = bundle
+            ? bundle.module_ids.map((mid) => ({
+                module_id: mid,
+                create: false,
+                read: true,
+                update: false,
+                delete: false,
+                special: [],
+              }))
+            : [];
+          set({
+            roles: [
+              ...get().roles,
+              { id, bundle_id: bundleId, name, description, is_default: false, permissions: perms },
+            ],
+          });
+          return id;
+        },
+
+        updateRole: (id, patch) =>
+          set({
+            roles: get().roles.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+          }),
+
+        deleteRole: (id) =>
+          set({ roles: get().roles.filter((r) => r.id !== id) }),
+
+        duplicateRole: (id) => {
+          const src = get().roles.find((r) => r.id === id);
+          if (!src) return undefined;
+          const newId = uid();
+          set({
+            roles: [
+              ...get().roles,
+              {
+                ...src,
+                id: newId,
+                name: `${src.name} (Copy)`,
+                is_default: false,
+                permissions: src.permissions.map((p) => ({ ...p, special: [...p.special] })),
+              },
+            ],
+          });
+          return newId;
+        },
+
+        setPermission: (roleId, moduleId, patch) =>
+          set({
+            roles: get().roles.map((r) => {
+              if (r.id !== roleId) return r;
+              const exists = r.permissions.some((p) => p.module_id === moduleId);
+              const permissions = exists
+                ? r.permissions.map((p) => (p.module_id === moduleId ? { ...p, ...patch } : p))
+                : [
+                    ...r.permissions,
+                    {
+                      module_id: moduleId,
+                      create: false,
+                      read: false,
+                      update: false,
+                      delete: false,
+                      special: [] as SpecialAction[],
+                      ...patch,
+                    },
+                  ];
+              return { ...r, permissions };
+            }),
+          }),
+
+        bulkSetCrud: (roleId, action, value) =>
+          set({
+            roles: get().roles.map((r) =>
+              r.id === roleId
+                ? { ...r, permissions: r.permissions.map((p) => ({ ...p, [action]: value })) }
+                : r,
+            ),
+          }),
+
+        applyRoleTemplate: (roleId, mode) =>
+          set({
+            roles: get().roles.map((r) => {
+              if (r.id !== roleId) return r;
+              const ids = r.permissions.map((p) => p.module_id);
+              const next =
+                mode === "full"
+                  ? fullPerm(ids)
+                  : mode === "read"
+                    ? readOnlyPerm(ids)
+                    : mode === "approver"
+                      ? approverPerm(ids)
+                      : ids.map((id) => ({
+                          module_id: id,
+                          create: false,
+                          read: false,
+                          update: false,
+                          delete: false,
+                          special: [] as SpecialAction[],
+                        }));
+              return { ...r, permissions: next };
+            }),
+          }),
+
+        syncRolesWithBundle: (bundleId) => {
+          const bundle = get().bundles.find((b) => b.id === bundleId);
+          if (!bundle) return;
+          set({
+            roles: get().roles.map((r) => {
+              if (r.bundle_id !== bundleId) return r;
+              const existing = new Map(r.permissions.map((p) => [p.module_id, p]));
+              const next: ModulePermission[] = bundle.module_ids.map(
+                (mid) =>
+                  existing.get(mid) ?? {
+                    module_id: mid,
+                    create: false,
+                    read: true,
+                    update: false,
+                    delete: false,
+                    special: [],
+                  },
+              );
+              return { ...r, permissions: next };
+            }),
+          });
+        },
+
         resolveDependencies: (moduleIds) => {
           const all = get().modules;
           const byId = new Map(all.map((m) => [m.id, m]));
@@ -419,7 +683,7 @@ export const useAirbox = create<AirboxState>()(
       };
     },
     {
-      name: "airbox-store-v1",
+      name: "airbox-store-v2",
     },
   ),
 );
