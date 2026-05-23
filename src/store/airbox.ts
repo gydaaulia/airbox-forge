@@ -46,6 +46,36 @@ export interface Subscription {
   created_at: string;
 }
 
+// ============== RBAC ==============
+export type CrudAction = "create" | "read" | "update" | "delete";
+export const SPECIAL_ACTIONS = [
+  "approve",
+  "export",
+  "import",
+  "publish",
+  "assign",
+  "configure",
+] as const;
+export type SpecialAction = (typeof SPECIAL_ACTIONS)[number];
+
+export interface ModulePermission {
+  module_id: string;
+  create: boolean;
+  read: boolean;
+  update: boolean;
+  delete: boolean;
+  special: SpecialAction[];
+}
+
+export interface Role {
+  id: string;
+  bundle_id: string;
+  name: string;
+  description: string;
+  is_default: boolean;
+  permissions: ModulePermission[];
+}
+
 const nameToId = (name: string) => slugify(name);
 
 function buildSeedModules(): Module[] {
