@@ -309,6 +309,20 @@ interface AirboxState {
   bulkAssign: (companyIds: string[], bundleId: string, activeUntil: string) => void;
   cancelSubscription: (subId: string) => void;
 
+  // RBAC
+  createRole: (bundleId: string, name: string, description?: string) => string;
+  updateRole: (id: string, patch: Partial<Pick<Role, "name" | "description">>) => void;
+  deleteRole: (id: string) => void;
+  duplicateRole: (id: string) => string | undefined;
+  setPermission: (
+    roleId: string,
+    moduleId: string,
+    patch: Partial<Omit<ModulePermission, "module_id">>,
+  ) => void;
+  bulkSetCrud: (roleId: string, action: CrudAction, value: boolean) => void;
+  applyRoleTemplate: (roleId: string, mode: "full" | "read" | "approver" | "none") => void;
+  syncRolesWithBundle: (bundleId: string) => void;
+
   // Helpers
   resolveDependencies: (moduleIds: string[]) => { resolved: string[]; missing: string[] };
 }
