@@ -683,7 +683,7 @@ export const useAirbox = create<AirboxState>()(
       };
     },
     {
-      name: "airbox-store-v1",
+      name: "airbox-store-v2",
     },
   ),
 );
