@@ -359,7 +359,7 @@ function PermissionMatrix({
           </thead>
           <tbody>
             {grouped.map(([cat, mods]) => (
-              <>
+              <Fragment key={cat}>
                 <tr key={`h-${cat}`} className="bg-muted/20">
                   <td colSpan={6} className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                     {cat}
