@@ -308,6 +308,7 @@ interface AirboxState {
   assignBundle: (companyId: string, bundleId: string, activeUntil: string) => void;
   bulkAssign: (companyIds: string[], bundleId: string, activeUntil: string) => void;
   cancelSubscription: (subId: string) => void;
+  reactivateSubscription: (subId: string, activeUntil: string) => void;
 
   // RBAC
   createRole: (bundleId: string, name: string, description?: string) => string;
@@ -524,6 +525,13 @@ export const useAirbox = create<AirboxState>()(
           set({
             subscriptions: get().subscriptions.map((s) =>
               s.id === subId ? { ...s, status: "cancelled" } : s,
+            ),
+          }),
+
+        reactivateSubscription: (subId, activeUntil) =>
+          set({
+            subscriptions: get().subscriptions.map((s) =>
+              s.id === subId ? { ...s, status: "active", active_until: activeUntil } : s,
             ),
           }),
 
