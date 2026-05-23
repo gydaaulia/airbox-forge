@@ -167,15 +167,28 @@ function CompaniesPage() {
                         >
                           {s.status}
                         </Badge>
-                        {s.status === "active" && (
+                        {s.status === "active" ? (
                           <button
                             onClick={() => {
                               cancelSubscription(s.id);
                               toast("Subscription cancelled");
                             }}
+                            title="Cancel subscription"
                             className="size-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive grid place-items-center"
                           >
                             <X className="size-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const until = new Date(Date.now() + 365 * 86400000).toISOString();
+                              reactivateSubscription(s.id, until);
+                              toast.success("Subscription reactivated");
+                            }}
+                            title="Reactivate subscription"
+                            className="size-6 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary grid place-items-center"
+                          >
+                            <RotateCcw className="size-3.5" />
                           </button>
                         )}
                       </div>
