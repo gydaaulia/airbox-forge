@@ -528,6 +528,13 @@ export const useAirbox = create<AirboxState>()(
             ),
           }),
 
+        reactivateSubscription: (subId, activeUntil) =>
+          set({
+            subscriptions: get().subscriptions.map((s) =>
+              s.id === subId ? { ...s, status: "active", active_until: activeUntil } : s,
+            ),
+          }),
+
 
         createRole: (bundleId, name, description = "") => {
           const id = uid();
