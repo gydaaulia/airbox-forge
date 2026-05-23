@@ -193,11 +193,101 @@ function seedCompanies(): Company[] {
   ];
 }
 
+function fullPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
+    special: [...SPECIAL_ACTIONS],
+  }));
+}
+
+function readOnlyPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: false,
+    read: true,
+    update: false,
+    delete: false,
+    special: [],
+  }));
+}
+
+function approverPerm(moduleIds: string[]): ModulePermission[] {
+  return moduleIds.map((id) => ({
+    module_id: id,
+    create: false,
+    read: true,
+    update: true,
+    delete: false,
+    special: ["approve"] as SpecialAction[],
+  }));
+}
+
+const ROLE_BLUEPRINTS: Record<string, Array<{ name: string; description: string; mode: "full" | "read" | "approver" }>> = {
+  BASIC_HRIS: [
+    { name: "HR Admin", description: "Full access to HR data.", mode: "full" },
+    { name: "Manager", description: "Approves leave & reviews team.", mode: "approver" },
+    { name: "Employee", description: "Self-service access only.", mode: "read" },
+  ],
+  ENT_HRIS: [
+    { name: "HR Admin", description: "Full HR & Payroll access.", mode: "full" },
+    { name: "Payroll Officer", description: "Manage payroll & taxes.", mode: "full" },
+    { name: "Manager", description: "Team approvals & reviews.", mode: "approver" },
+    { name: "Employee", description: "Personal data only.", mode: "read" },
+  ],
+  ACC_START: [
+    { name: "Finance Admin", description: "Full ledger & reporting access.", mode: "full" },
+    { name: "Accountant", description: "Day-to-day bookkeeping.", mode: "approver" },
+    { name: "Auditor", description: "Read-only access.", mode: "read" },
+  ],
+  LOG_PRO: [
+    { name: "Operations Admin", description: "Full ops oversight.", mode: "full" },
+    { name: "Dispatcher", description: "Bookings & shipments.", mode: "approver" },
+    { name: "Driver", description: "Trip log only.", mode: "read" },
+  ],
+  FULL_ERP: [
+    { name: "Super Admin", description: "Owner of the tenant.", mode: "full" },
+    { name: "Department Manager", description: "Approves cross-module workflows.", mode: "approver" },
+    { name: "Staff", description: "Daily transactional usage.", mode: "read" },
+  ],
+};
+
+function seedRoles(bundles: Bundle[]): Role[] {
+  const out: Role[] = [];
+  for (const b of bundles) {
+    const blueprint = ROLE_BLUEPRINTS[b.code] ?? [
+      { name: "Admin", description: "Full access.", mode: "full" as const },
+      { name: "Member", description: "Read-only access.", mode: "read" as const },
+    ];
+    for (const r of blueprint) {
+      const perms =
+        r.mode === "full"
+          ? fullPerm(b.module_ids)
+          : r.mode === "read"
+            ? readOnlyPerm(b.module_ids)
+            : approverPerm(b.module_ids);
+      out.push({
+        id: uid(),
+        bundle_id: b.id,
+        name: r.name,
+        description: r.description,
+        is_default: true,
+        permissions: perms,
+      });
+    }
+  }
+  return out;
+}
+
 interface AirboxState {
   modules: Module[];
   bundles: Bundle[];
   companies: Company[];
   subscriptions: Subscription[];
+  roles: Role[];
 
   // Modules
   importModules: (json: string) => { added: number; error?: string };
