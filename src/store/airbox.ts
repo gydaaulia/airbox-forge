@@ -308,6 +308,7 @@ interface AirboxState {
   assignBundle: (companyId: string, bundleId: string, activeUntil: string) => void;
   bulkAssign: (companyIds: string[], bundleId: string, activeUntil: string) => void;
   cancelSubscription: (subId: string) => void;
+  reactivateSubscription: (subId: string, activeUntil: string) => void;
 
   // RBAC
   createRole: (bundleId: string, name: string, description?: string) => string;
