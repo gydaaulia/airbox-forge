@@ -527,6 +527,135 @@ export const useAirbox = create<AirboxState>()(
             ),
           }),
 
+
+        createRole: (bundleId, name, description = "") => {
+          const id = uid();
+          const bundle = get().bundles.find((b) => b.id === bundleId);
+          const perms: ModulePermission[] = bundle
+            ? bundle.module_ids.map((mid) => ({
+                module_id: mid,
+                create: false,
+                read: true,
+                update: false,
+                delete: false,
+                special: [],
+              }))
+            : [];
+          set({
+            roles: [
+              ...get().roles,
+              { id, bundle_id: bundleId, name, description, is_default: false, permissions: perms },
+            ],
+          });
+          return id;
+        },
+
+        updateRole: (id, patch) =>
+          set({
+            roles: get().roles.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+          }),
+
+        deleteRole: (id) =>
+          set({ roles: get().roles.filter((r) => r.id !== id) }),
+
+        duplicateRole: (id) => {
+          const src = get().roles.find((r) => r.id === id);
+          if (!src) return undefined;
+          const newId = uid();
+          set({
+            roles: [
+              ...get().roles,
+              {
+                ...src,
+                id: newId,
+                name: `${src.name} (Copy)`,
+                is_default: false,
+                permissions: src.permissions.map((p) => ({ ...p, special: [...p.special] })),
+              },
+            ],
+          });
+          return newId;
+        },
+
+        setPermission: (roleId, moduleId, patch) =>
+          set({
+            roles: get().roles.map((r) => {
+              if (r.id !== roleId) return r;
+              const exists = r.permissions.some((p) => p.module_id === moduleId);
+              const permissions = exists
+                ? r.permissions.map((p) => (p.module_id === moduleId ? { ...p, ...patch } : p))
+                : [
+                    ...r.permissions,
+                    {
+                      module_id: moduleId,
+                      create: false,
+                      read: false,
+                      update: false,
+                      delete: false,
+                      special: [] as SpecialAction[],
+                      ...patch,
+                    },
+                  ];
+              return { ...r, permissions };
+            }),
+          }),
+
+        bulkSetCrud: (roleId, action, value) =>
+          set({
+            roles: get().roles.map((r) =>
+              r.id === roleId
+                ? { ...r, permissions: r.permissions.map((p) => ({ ...p, [action]: value })) }
+                : r,
+            ),
+          }),
+
+        applyRoleTemplate: (roleId, mode) =>
+          set({
+            roles: get().roles.map((r) => {
+              if (r.id !== roleId) return r;
+              const ids = r.permissions.map((p) => p.module_id);
+              const next =
+                mode === "full"
+                  ? fullPerm(ids)
+                  : mode === "read"
+                    ? readOnlyPerm(ids)
+                    : mode === "approver"
+                      ? approverPerm(ids)
+                      : ids.map((id) => ({
+                          module_id: id,
+                          create: false,
+                          read: false,
+                          update: false,
+                          delete: false,
+                          special: [] as SpecialAction[],
+                        }));
+              return { ...r, permissions: next };
+            }),
+          }),
+
+        syncRolesWithBundle: (bundleId) => {
+          const bundle = get().bundles.find((b) => b.id === bundleId);
+          if (!bundle) return;
+          set({
+            roles: get().roles.map((r) => {
+              if (r.bundle_id !== bundleId) return r;
+              const existing = new Map(r.permissions.map((p) => [p.module_id, p]));
+              const next: ModulePermission[] = bundle.module_ids.map(
+                (mid) =>
+                  existing.get(mid) ?? {
+                    module_id: mid,
+                    create: false,
+                    read: true,
+                    update: false,
+                    delete: false,
+                    special: [],
+                  },
+              );
+              return { ...r, permissions: next };
+            }),
+          });
+        },
+
         resolveDependencies: (moduleIds) => {
           const all = get().modules;
           const byId = new Map(all.map((m) => [m.id, m]));
