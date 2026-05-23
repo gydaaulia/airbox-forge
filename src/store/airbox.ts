@@ -358,6 +358,7 @@ export const useAirbox = create<AirboxState>()(
         bundles,
         companies,
         subscriptions: initialSubs,
+        roles: seedRoles(bundles),
 
         importModules: (json) => {
           try {
