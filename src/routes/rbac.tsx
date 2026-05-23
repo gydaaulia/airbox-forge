@@ -404,7 +404,7 @@ function PermissionMatrix({
                     </tr>
                   );
                 })}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
