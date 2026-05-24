@@ -76,6 +76,50 @@ export interface Role {
   permissions: ModulePermission[];
 }
 
+// ============== Users / Invitations / Assignments ==============
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  password_hash: string | null; // null until invitation accepted
+  status: "invited" | "active" | "disabled";
+  created_at: string;
+}
+
+export interface Invitation {
+  id: string;
+  token: string;
+  email: string;
+  name: string;
+  company_id: string;
+  role_id: string;
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+  status: "pending" | "accepted" | "revoked" | "expired";
+}
+
+// Per-user override on top of role permissions for a single module.
+// undefined CRUD fields = inherit from role.
+export interface PermissionOverride {
+  module_id: string;
+  create?: boolean;
+  read?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  special_add: SpecialAction[];
+  special_remove: SpecialAction[];
+}
+
+export interface Assignment {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role_id: string;
+  overrides: PermissionOverride[];
+  created_at: string;
+}
+
 const nameToId = (name: string) => slugify(name);
 
 function buildSeedModules(): Module[] {
@@ -288,6 +332,9 @@ interface AirboxState {
   companies: Company[];
   subscriptions: Subscription[];
   roles: Role[];
+  users: User[];
+  invitations: Invitation[];
+  assignments: Assignment[];
 
   // Modules
   importModules: (json: string) => { added: number; error?: string };
@@ -324,8 +371,42 @@ interface AirboxState {
   applyRoleTemplate: (roleId: string, mode: "full" | "read" | "approver" | "none") => void;
   syncRolesWithBundle: (bundleId: string) => void;
 
+  // User invitations & assignments
+  inviteUser: (params: {
+    email: string;
+    name: string;
+    company_id: string;
+    role_id: string;
+  }) => { invitation: Invitation; link: string };
+  revokeInvitation: (invitationId: string) => void;
+  resendInvitation: (invitationId: string) => { link: string } | undefined;
+  acceptInvitation: (
+    token: string,
+    password: string,
+  ) => { ok: true; user: User } | { ok: false; error: string };
+  setAssignmentRole: (assignmentId: string, roleId: string) => void;
+  removeAssignment: (assignmentId: string) => void;
+  setUserStatus: (userId: string, status: User["status"]) => void;
+  setOverrideCrud: (
+    assignmentId: string,
+    moduleId: string,
+    field: CrudAction,
+    value: boolean | "inherit",
+  ) => void;
+  toggleOverrideSpecial: (
+    assignmentId: string,
+    moduleId: string,
+    action: SpecialAction,
+    mode: "grant" | "revoke" | "inherit",
+  ) => void;
+  clearAssignmentOverrides: (assignmentId: string) => void;
+
   // Helpers
   resolveDependencies: (moduleIds: string[]) => { resolved: string[]; missing: string[] };
+  effectivePermission: (
+    assignmentId: string,
+    moduleId: string,
+  ) => ModulePermission | null;
 }
 
 export const useAirbox = create<AirboxState>()(
@@ -360,6 +441,10 @@ export const useAirbox = create<AirboxState>()(
         companies,
         subscriptions: initialSubs,
         roles: seedRoles(bundles),
+        users: [],
+        invitations: [],
+        assignments: [],
+
 
         importModules: (json) => {
           try {
@@ -688,10 +773,227 @@ export const useAirbox = create<AirboxState>()(
             missing: Array.from(missing),
           };
         },
+
+        inviteUser: ({ email, name, company_id, role_id }) => {
+          const token = uid() + uid();
+          const now = new Date().toISOString();
+          const expires = new Date(Date.now() + 7 * 86400000).toISOString();
+          const inv: Invitation = {
+            id: uid(),
+            token,
+            email: email.toLowerCase().trim(),
+            name: name.trim(),
+            company_id,
+            role_id,
+            invited_by: "ops@airbox.io",
+            created_at: now,
+            expires_at: expires,
+            status: "pending",
+          };
+          set({ invitations: [...get().invitations, inv] });
+          const link = `${typeof window !== "undefined" ? window.location.origin : ""}/accept-invite/${token}`;
+          return { invitation: inv, link };
+        },
+
+        revokeInvitation: (id) =>
+          set({
+            invitations: get().invitations.map((i) =>
+              i.id === id ? { ...i, status: "revoked" } : i,
+            ),
+          }),
+
+        resendInvitation: (id) => {
+          const inv = get().invitations.find((i) => i.id === id);
+          if (!inv) return undefined;
+          const newExpires = new Date(Date.now() + 7 * 86400000).toISOString();
+          set({
+            invitations: get().invitations.map((i) =>
+              i.id === id ? { ...i, status: "pending", expires_at: newExpires } : i,
+            ),
+          });
+          const link = `${typeof window !== "undefined" ? window.location.origin : ""}/accept-invite/${inv.token}`;
+          return { link };
+        },
+
+        acceptInvitation: (token, password) => {
+          const inv = get().invitations.find((i) => i.token === token);
+          if (!inv) return { ok: false, error: "Invitation not found." };
+          if (inv.status === "accepted") return { ok: false, error: "Invitation already used." };
+          if (inv.status === "revoked") return { ok: false, error: "Invitation was revoked." };
+          if (new Date(inv.expires_at).getTime() < Date.now())
+            return { ok: false, error: "Invitation has expired." };
+          if (password.length < 8)
+            return { ok: false, error: "Password must be at least 8 characters." };
+
+          // create or reuse user
+          const existing = get().users.find((u) => u.email === inv.email);
+          const user: User =
+            existing ?? {
+              id: uid(),
+              email: inv.email,
+              name: inv.name,
+              password_hash: null,
+              status: "invited",
+              created_at: new Date().toISOString(),
+            };
+          // pseudo-hash (demo only)
+          const hash = btoa(`${user.email}:${password}`);
+          const updatedUser: User = { ...user, password_hash: hash, status: "active" };
+
+          const users = existing
+            ? get().users.map((u) => (u.id === existing.id ? updatedUser : u))
+            : [...get().users, updatedUser];
+
+          // create assignment (avoid duplicate for same company+user)
+          const dup = get().assignments.find(
+            (a) => a.company_id === inv.company_id && a.user_id === updatedUser.id,
+          );
+          const assignments = dup
+            ? get().assignments.map((a) =>
+                a.id === dup.id ? { ...a, role_id: inv.role_id } : a,
+              )
+            : [
+                ...get().assignments,
+                {
+                  id: uid(),
+                  company_id: inv.company_id,
+                  user_id: updatedUser.id,
+                  role_id: inv.role_id,
+                  overrides: [],
+                  created_at: new Date().toISOString(),
+                },
+              ];
+
+          set({
+            users,
+            assignments,
+            invitations: get().invitations.map((i) =>
+              i.id === inv.id ? { ...i, status: "accepted" } : i,
+            ),
+          });
+          return { ok: true, user: updatedUser };
+        },
+
+        setAssignmentRole: (assignmentId, roleId) =>
+          set({
+            assignments: get().assignments.map((a) =>
+              a.id === assignmentId ? { ...a, role_id: roleId, overrides: [] } : a,
+            ),
+          }),
+
+        removeAssignment: (id) =>
+          set({ assignments: get().assignments.filter((a) => a.id !== id) }),
+
+        setUserStatus: (userId, status) =>
+          set({
+            users: get().users.map((u) => (u.id === userId ? { ...u, status } : u)),
+          }),
+
+        setOverrideCrud: (assignmentId, moduleId, field, value) =>
+          set({
+            assignments: get().assignments.map((a) => {
+              if (a.id !== assignmentId) return a;
+              const existing = a.overrides.find((o) => o.module_id === moduleId);
+              let nextOverride: PermissionOverride = existing
+                ? { ...existing }
+                : { module_id: moduleId, special_add: [], special_remove: [] };
+              if (value === "inherit") {
+                delete (nextOverride as unknown as Record<string, unknown>)[field];
+              } else {
+                (nextOverride as unknown as Record<string, unknown>)[field] = value;
+              }
+              const empty =
+                nextOverride.create === undefined &&
+                nextOverride.read === undefined &&
+                nextOverride.update === undefined &&
+                nextOverride.delete === undefined &&
+                nextOverride.special_add.length === 0 &&
+                nextOverride.special_remove.length === 0;
+              const overrides = existing
+                ? empty
+                  ? a.overrides.filter((o) => o.module_id !== moduleId)
+                  : a.overrides.map((o) => (o.module_id === moduleId ? nextOverride : o))
+                : empty
+                  ? a.overrides
+                  : [...a.overrides, nextOverride];
+              return { ...a, overrides };
+            }),
+          }),
+
+        toggleOverrideSpecial: (assignmentId, moduleId, action, mode) =>
+          set({
+            assignments: get().assignments.map((a) => {
+              if (a.id !== assignmentId) return a;
+              const existing = a.overrides.find((o) => o.module_id === moduleId);
+              const base: PermissionOverride = existing
+                ? {
+                    ...existing,
+                    special_add: [...existing.special_add],
+                    special_remove: [...existing.special_remove],
+                  }
+                : { module_id: moduleId, special_add: [], special_remove: [] };
+              base.special_add = base.special_add.filter((s) => s !== action);
+              base.special_remove = base.special_remove.filter((s) => s !== action);
+              if (mode === "grant") base.special_add.push(action);
+              if (mode === "revoke") base.special_remove.push(action);
+              const empty =
+                base.create === undefined &&
+                base.read === undefined &&
+                base.update === undefined &&
+                base.delete === undefined &&
+                base.special_add.length === 0 &&
+                base.special_remove.length === 0;
+              const overrides = existing
+                ? empty
+                  ? a.overrides.filter((o) => o.module_id !== moduleId)
+                  : a.overrides.map((o) => (o.module_id === moduleId ? base : o))
+                : empty
+                  ? a.overrides
+                  : [...a.overrides, base];
+              return { ...a, overrides };
+            }),
+          }),
+
+        clearAssignmentOverrides: (assignmentId) =>
+          set({
+            assignments: get().assignments.map((a) =>
+              a.id === assignmentId ? { ...a, overrides: [] } : a,
+            ),
+          }),
+
+        effectivePermission: (assignmentId, moduleId) => {
+          const a = get().assignments.find((x) => x.id === assignmentId);
+          if (!a) return null;
+          const role = get().roles.find((r) => r.id === a.role_id);
+          if (!role) return null;
+          const base =
+            role.permissions.find((p) => p.module_id === moduleId) ?? {
+              module_id: moduleId,
+              create: false,
+              read: false,
+              update: false,
+              delete: false,
+              special: [] as SpecialAction[],
+            };
+          const ov = a.overrides.find((o) => o.module_id === moduleId);
+          if (!ov) return base;
+          const special = new Set<SpecialAction>(base.special);
+          for (const s of ov.special_add) special.add(s);
+          for (const s of ov.special_remove) special.delete(s);
+          return {
+            module_id: moduleId,
+            create: ov.create ?? base.create,
+            read: ov.read ?? base.read,
+            update: ov.update ?? base.update,
+            delete: ov.delete ?? base.delete,
+            special: Array.from(special),
+          };
+        },
       };
     },
     {
-      name: "airbox-store-v2",
+      name: "airbox-store-v3",
     },
+
   ),
 );
