@@ -332,6 +332,9 @@ interface AirboxState {
   companies: Company[];
   subscriptions: Subscription[];
   roles: Role[];
+  users: User[];
+  invitations: Invitation[];
+  assignments: Assignment[];
 
   // Modules
   importModules: (json: string) => { added: number; error?: string };
@@ -368,8 +371,42 @@ interface AirboxState {
   applyRoleTemplate: (roleId: string, mode: "full" | "read" | "approver" | "none") => void;
   syncRolesWithBundle: (bundleId: string) => void;
 
+  // User invitations & assignments
+  inviteUser: (params: {
+    email: string;
+    name: string;
+    company_id: string;
+    role_id: string;
+  }) => { invitation: Invitation; link: string };
+  revokeInvitation: (invitationId: string) => void;
+  resendInvitation: (invitationId: string) => { link: string } | undefined;
+  acceptInvitation: (
+    token: string,
+    password: string,
+  ) => { ok: true; user: User } | { ok: false; error: string };
+  setAssignmentRole: (assignmentId: string, roleId: string) => void;
+  removeAssignment: (assignmentId: string) => void;
+  setUserStatus: (userId: string, status: User["status"]) => void;
+  setOverrideCrud: (
+    assignmentId: string,
+    moduleId: string,
+    field: CrudAction,
+    value: boolean | "inherit",
+  ) => void;
+  toggleOverrideSpecial: (
+    assignmentId: string,
+    moduleId: string,
+    action: SpecialAction,
+    mode: "grant" | "revoke" | "inherit",
+  ) => void;
+  clearAssignmentOverrides: (assignmentId: string) => void;
+
   // Helpers
   resolveDependencies: (moduleIds: string[]) => { resolved: string[]; missing: string[] };
+  effectivePermission: (
+    assignmentId: string,
+    moduleId: string,
+  ) => ModulePermission | null;
 }
 
 export const useAirbox = create<AirboxState>()(
