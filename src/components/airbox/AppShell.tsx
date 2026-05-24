@@ -24,8 +24,13 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
 
+  if (pathname.startsWith("/accept-invite")) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="px-6 pt-6 pb-8 flex items-center gap-2">
           <div className="size-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow grid place-items-center shadow-[var(--shadow-elegant)]">
