@@ -128,6 +128,10 @@ function CompaniesPage() {
         {companies.map((c) => {
           const subs = subsByCompany.get(c.id) ?? [];
           const activeSubs = subs.filter((s) => s.status === "active");
+          const memberCount = assignments.filter((a) => a.company_id === c.id).length;
+          const pendingCount = invitations.filter(
+            (i) => i.company_id === c.id && i.status === "pending",
+          ).length;
           return (
             <Card key={c.id} className="p-5">
               <div className="flex items-start justify-between">
@@ -140,8 +144,20 @@ function CompaniesPage() {
                     <div className="text-xs text-muted-foreground">{c.industry} · {c.employees} employees</div>
                   </div>
                 </div>
-                <Badge variant="secondary">{activeSubs.length} active</Badge>
+                <div className="flex flex-col items-end gap-1.5">
+                  <Badge variant="secondary">{activeSubs.length} active</Badge>
+                  <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+                    <Link to="/companies/$companyId" params={{ companyId: c.id }}>
+                      <Users className="size-3.5" />
+                      {memberCount} member{memberCount === 1 ? "" : "s"}
+                      {pendingCount > 0 && (
+                        <span className="text-primary">· {pendingCount} pending</span>
+                      )}
+                    </Link>
+                  </Button>
+                </div>
               </div>
+
 
               <div className="mt-4 flex flex-col gap-2">
                 {subs.length === 0 && (
