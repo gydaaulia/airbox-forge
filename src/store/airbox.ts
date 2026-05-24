@@ -76,6 +76,50 @@ export interface Role {
   permissions: ModulePermission[];
 }
 
+// ============== Users / Invitations / Assignments ==============
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  password_hash: string | null; // null until invitation accepted
+  status: "invited" | "active" | "disabled";
+  created_at: string;
+}
+
+export interface Invitation {
+  id: string;
+  token: string;
+  email: string;
+  name: string;
+  company_id: string;
+  role_id: string;
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+  status: "pending" | "accepted" | "revoked" | "expired";
+}
+
+// Per-user override on top of role permissions for a single module.
+// undefined CRUD fields = inherit from role.
+export interface PermissionOverride {
+  module_id: string;
+  create?: boolean;
+  read?: boolean;
+  update?: boolean;
+  delete?: boolean;
+  special_add: SpecialAction[];
+  special_remove: SpecialAction[];
+}
+
+export interface Assignment {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role_id: string;
+  overrides: PermissionOverride[];
+  created_at: string;
+}
+
 const nameToId = (name: string) => slugify(name);
 
 function buildSeedModules(): Module[] {
