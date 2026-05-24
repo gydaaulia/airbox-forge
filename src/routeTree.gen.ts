@@ -15,6 +15,7 @@ import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 
 const TemplatesRoute = TemplatesRouteImport.update({
@@ -47,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
+  id: '/$companyId',
+  path: '/$companyId',
+  getParentRoute: () => CompaniesRoute,
+} as any)
 const BundlesBundleIdRoute = BundlesBundleIdRouteImport.update({
   id: '/$bundleId',
   path: '/$bundleId',
@@ -56,30 +62,33 @@ const BundlesBundleIdRoute = BundlesBundleIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/bundles': typeof BundlesRouteWithChildren
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
+  '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/rbac'
     | '/templates'
     | '/bundles/$bundleId'
+    | '/companies/$companyId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/rbac'
     | '/templates'
     | '/bundles/$bundleId'
+    | '/companies/$companyId'
   id:
     | '__root__'
     | '/'
@@ -109,12 +120,13 @@ export interface FileRouteTypes {
     | '/rbac'
     | '/templates'
     | '/bundles/$bundleId'
+    | '/companies/$companyId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BundlesRoute: typeof BundlesRouteWithChildren
-  CompaniesRoute: typeof CompaniesRoute
+  CompaniesRoute: typeof CompaniesRouteWithChildren
   ModulesRoute: typeof ModulesRoute
   RbacRoute: typeof RbacRoute
   TemplatesRoute: typeof TemplatesRoute
@@ -164,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies/$companyId': {
+      id: '/companies/$companyId'
+      path: '/$companyId'
+      fullPath: '/companies/$companyId'
+      preLoaderRoute: typeof CompaniesCompanyIdRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
     '/bundles/$bundleId': {
       id: '/bundles/$bundleId'
       path: '/$bundleId'
@@ -185,10 +204,22 @@ const BundlesRouteChildren: BundlesRouteChildren = {
 const BundlesRouteWithChildren =
   BundlesRoute._addFileChildren(BundlesRouteChildren)
 
+interface CompaniesRouteChildren {
+  CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
+}
+
+const CompaniesRouteChildren: CompaniesRouteChildren = {
+  CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
+}
+
+const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
+  CompaniesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BundlesRoute: BundlesRouteWithChildren,
-  CompaniesRoute: CompaniesRoute,
+  CompaniesRoute: CompaniesRouteWithChildren,
   ModulesRoute: ModulesRoute,
   RbacRoute: RbacRoute,
   TemplatesRoute: TemplatesRoute,
@@ -196,3 +227,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
