@@ -17,6 +17,7 @@ import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
+import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
 
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
@@ -58,6 +59,11 @@ const BundlesBundleIdRoute = BundlesBundleIdRouteImport.update({
   path: '/$bundleId',
   getParentRoute: () => BundlesRoute,
 } as any)
+const AcceptInviteTokenRoute = AcceptInviteTokenRouteImport.update({
+  id: '/accept-invite/$token',
+  path: '/accept-invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
   '/templates': typeof TemplatesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/modules'
     | '/rbac'
     | '/templates'
+    | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/modules'
     | '/rbac'
     | '/templates'
+    | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/modules'
     | '/rbac'
     | '/templates'
+    | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   ModulesRoute: typeof ModulesRoute
   RbacRoute: typeof RbacRoute
   TemplatesRoute: typeof TemplatesRoute
+  AcceptInviteTokenRoute: typeof AcceptInviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -190,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BundlesBundleIdRouteImport
       parentRoute: typeof BundlesRoute
     }
+    '/accept-invite/$token': {
+      id: '/accept-invite/$token'
+      path: '/accept-invite/$token'
+      fullPath: '/accept-invite/$token'
+      preLoaderRoute: typeof AcceptInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModulesRoute: ModulesRoute,
   RbacRoute: RbacRoute,
   TemplatesRoute: TemplatesRoute,
+  AcceptInviteTokenRoute: AcceptInviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
