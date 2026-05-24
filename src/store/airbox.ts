@@ -898,9 +898,9 @@ export const useAirbox = create<AirboxState>()(
                 ? { ...existing }
                 : { module_id: moduleId, special_add: [], special_remove: [] };
               if (value === "inherit") {
-                delete (nextOverride as Record<string, unknown>)[field];
+                delete (nextOverride as unknown as Record<string, unknown>)[field];
               } else {
-                (nextOverride as Record<string, unknown>)[field] = value;
+                (nextOverride as unknown as Record<string, unknown>)[field] = value;
               }
               const empty =
                 nextOverride.create === undefined &&
