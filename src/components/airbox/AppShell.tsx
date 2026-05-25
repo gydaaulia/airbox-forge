@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Package,
   Boxes,
-  Layers,
   Building2,
   Bell,
   Search,
@@ -16,7 +15,6 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/modules", label: "Module Library", icon: Boxes },
   { to: "/bundles", label: "Product Bundles", icon: Package },
-  { to: "/templates", label: "Templates", icon: Layers },
   { to: "/rbac", label: "Roles & Permissions", icon: Shield },
   { to: "/companies", label: "Companies", icon: Building2 },
 ] as const;
