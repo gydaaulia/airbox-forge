@@ -256,5 +256,3 @@ function CompaniesPage() {
     </div>
   );
 }
-
-}
