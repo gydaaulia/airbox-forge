@@ -198,15 +198,13 @@ function CompaniesPage() {
                         </Badge>
                         {s.status === "active" ? (
                           <button
-                            onClick={() => {
-                              cancelSubscription(s.id);
-                              toast("Subscription cancelled");
-                            }}
-                            title="Cancel subscription"
+                            onClick={() => setCancelId(s.id)}
+                            title="Deactivate subscription"
                             className="size-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive grid place-items-center"
                           >
                             <X className="size-3.5" />
                           </button>
+
                         ) : (
                           <button
                             onClick={() => {
