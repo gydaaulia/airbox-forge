@@ -40,7 +40,8 @@ export const Route = createFileRoute("/companies")({
 });
 
 function CompaniesPage() {
-  const { companies, subscriptions, bundles, assignments, invitations, assignBundle, bulkAssign, cancelSubscription, reactivateSubscription } = useAirbox();
+  const { companies, subscriptions, bundles, assignments, invitations, bulkAssign, cancelSubscription, reactivateSubscription } = useAirbox();
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkBundle, setBulkBundle] = useState("");
