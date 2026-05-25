@@ -16,6 +16,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Building2, Plus, X, RotateCcw, Users } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 
@@ -30,7 +40,8 @@ export const Route = createFileRoute("/companies")({
 });
 
 function CompaniesPage() {
-  const { companies, subscriptions, bundles, assignments, invitations, assignBundle, bulkAssign, cancelSubscription, reactivateSubscription } = useAirbox();
+  const { companies, subscriptions, bundles, assignments, invitations, bulkAssign, cancelSubscription, reactivateSubscription } = useAirbox();
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkBundle, setBulkBundle] = useState("");
@@ -187,15 +198,13 @@ function CompaniesPage() {
                         </Badge>
                         {s.status === "active" ? (
                           <button
-                            onClick={() => {
-                              cancelSubscription(s.id);
-                              toast("Subscription cancelled");
-                            }}
-                            title="Cancel subscription"
+                            onClick={() => setCancelId(s.id)}
+                            title="Deactivate subscription"
                             className="size-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive grid place-items-center"
                           >
                             <X className="size-3.5" />
                           </button>
+
                         ) : (
                           <button
                             onClick={() => {
@@ -214,52 +223,36 @@ function CompaniesPage() {
                   );
                 })}
               </div>
-
-              <QuickAssign companyId={c.id} bundles={bundleOptions} onAssign={assignBundle} />
             </Card>
           );
         })}
       </div>
-    </div>
-  );
-}
 
-function QuickAssign({
-  companyId,
-  bundles,
-  onAssign,
-}: {
-  companyId: string;
-  bundles: { id: string; name: string }[];
-  onAssign: (companyId: string, bundleId: string, activeUntil: string) => void;
-}) {
-  const [bid, setBid] = useState("");
-  const [days, setDays] = useState(365);
-  return (
-    <div className="mt-3 flex gap-2 items-center">
-      <select
-        value={bid}
-        onChange={(e) => setBid(e.target.value)}
-        className="flex-1 h-9 rounded-lg border border-input bg-card text-sm px-2.5"
-      >
-        <option value="">Quick assign a bundle…</option>
-        {bundles.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-      </select>
-      <Input type="number" value={days} onChange={(e) => setDays(+e.target.value)} className="w-20 h-9" />
-      <Button
-        size="sm"
-        disabled={!bid}
-        onClick={() => {
-          const until = new Date(Date.now() + days * 86400000).toISOString();
-          onAssign(companyId, bid, until);
-          toast.success("Bundle assigned");
-          setBid("");
-        }}
-      >
-        Assign
-      </Button>
+      <AlertDialog open={cancelId !== null} onOpenChange={(o) => !o && setCancelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate this subscription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The company will immediately lose access to all modules in this bundle. You can reactivate it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (cancelId) {
+                  cancelSubscription(cancelId);
+                  toast("Subscription deactivated");
+                }
+                setCancelId(null);
+              }}
+            >
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
