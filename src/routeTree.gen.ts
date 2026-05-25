@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as RbacRouteImport } from './routes/rbac'
 import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -19,11 +18,6 @@ import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$comp
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
 
-const TemplatesRoute = TemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RbacRoute = RbacRouteImport.update({
   id: '/rbac',
   path: '/rbac',
@@ -71,7 +65,6 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
-  '/templates': typeof TemplatesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -82,7 +75,6 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
-  '/templates': typeof TemplatesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -94,7 +86,6 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRouteWithChildren
   '/modules': typeof ModulesRoute
   '/rbac': typeof RbacRoute
-  '/templates': typeof TemplatesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
@@ -107,7 +98,6 @@ export interface FileRouteTypes {
     | '/companies'
     | '/modules'
     | '/rbac'
-    | '/templates'
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
@@ -118,7 +108,6 @@ export interface FileRouteTypes {
     | '/companies'
     | '/modules'
     | '/rbac'
-    | '/templates'
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
@@ -129,7 +118,6 @@ export interface FileRouteTypes {
     | '/companies'
     | '/modules'
     | '/rbac'
-    | '/templates'
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
@@ -141,19 +129,11 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRouteWithChildren
   ModulesRoute: typeof ModulesRoute
   RbacRoute: typeof RbacRoute
-  TemplatesRoute: typeof TemplatesRoute
   AcceptInviteTokenRoute: typeof AcceptInviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/templates': {
-      id: '/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof TemplatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/rbac': {
       id: '/rbac'
       path: '/rbac'
@@ -242,9 +222,18 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRouteWithChildren,
   ModulesRoute: ModulesRoute,
   RbacRoute: RbacRoute,
-  TemplatesRoute: TemplatesRoute,
   AcceptInviteTokenRoute: AcceptInviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
