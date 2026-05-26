@@ -34,7 +34,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatIDR } from "@/lib/utils";
 
 export const Route = createFileRoute("/bundles")({
   head: () => ({
