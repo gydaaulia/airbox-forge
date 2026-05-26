@@ -229,39 +229,60 @@ const STEPS = [
 function CreateBundleWizard({
   open,
   setOpen,
+  editBundle,
   onComplete,
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
+  editBundle?: Bundle | null;
   onComplete: (meta: Meta, moduleIds: string[]) => void;
 }) {
   const { modules, resolveDependencies } = useAirbox();
+  const isEdit = !!editBundle;
+  const initialMeta = (): Meta =>
+    editBundle
+      ? {
+          name: editBundle.name,
+          code: editBundle.code,
+          description: editBundle.description,
+          category: editBundle.category,
+          pricing_type: editBundle.pricing_type,
+          monthly_price: editBundle.monthly_price,
+          yearly_price: editBundle.yearly_price,
+        }
+      : {
+          name: "",
+          code: "",
+          description: "",
+          category: "Custom",
+          pricing_type: "monthly",
+          monthly_price: 0,
+          yearly_price: 0,
+        };
   const [step, setStep] = useState(0);
-  const [meta, setMeta] = useState<Meta>({
-    name: "",
-    code: "",
-    description: "",
-    category: "Custom",
-    pricing_type: "monthly",
-    monthly_price: 0,
-    yearly_price: 0,
-  });
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [meta, setMeta] = useState<Meta>(initialMeta);
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(editBundle?.module_ids ?? []),
+  );
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
 
+  // Re-sync when a different bundle is opened for editing
+  useEffect(() => {
+    if (open) {
+      setStep(0);
+      setMeta(initialMeta());
+      setSelected(new Set(editBundle?.module_ids ?? []));
+      setQ("");
+      setCat("all");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editBundle?.id]);
+
   const reset = () => {
     setStep(0);
-    setMeta({
-      name: "",
-      code: "",
-      description: "",
-      category: "Custom",
-      pricing_type: "monthly",
-      monthly_price: 0,
-      yearly_price: 0,
-    });
-    setSelected(new Set());
+    setMeta(initialMeta());
+    setSelected(new Set(editBundle?.module_ids ?? []));
     setQ("");
     setCat("all");
   };
@@ -270,6 +291,8 @@ function CreateBundleWizard({
     setOpen(v);
     if (!v) reset();
   };
+
+
 
   const categories = useMemo(
     () => Array.from(new Set(modules.map((m) => m.category))).sort(),
