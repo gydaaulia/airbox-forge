@@ -613,11 +613,11 @@ function CreateBundleWizard({
                     <div className="text-[10px] text-muted-foreground uppercase">Modules</div>
                   </div>
                   <div className="p-2 rounded-md bg-muted/60">
-                    <div className="text-sm font-semibold">${meta.monthly_price}</div>
+                    <div className="text-sm font-semibold">{formatIDR(meta.monthly_price)}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">/mo</div>
                   </div>
                   <div className="p-2 rounded-md bg-muted/60">
-                    <div className="text-sm font-semibold">${meta.yearly_price}</div>
+                    <div className="text-sm font-semibold">{formatIDR(meta.yearly_price)}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">/yr</div>
                   </div>
                 </div>
