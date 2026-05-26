@@ -47,10 +47,11 @@ export const Route = createFileRoute("/bundles")({
 });
 
 function BundlesPage() {
-  const { bundles, createBundle, setBundleModules, duplicateBundle, archiveBundle, toggleBundleStatus } = useAirbox();
+  const { bundles, createBundle, updateBundle, setBundleModules, duplicateBundle, archiveBundle, toggleBundleStatus } = useAirbox();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Bundle | null>(null);
 
   const visible = useMemo(
     () =>
@@ -72,7 +73,7 @@ function BundlesPage() {
         title="Product Bundles"
         description="Create and assign product bundles. Use the guided wizard to build a bundle from the module library."
         actions={
-          <Button className="gap-1.5" onClick={() => setOpen(true)}>
+          <Button className="gap-1.5" onClick={() => { setEditing(null); setOpen(true); }}>
             <Plus className="size-4" /> New bundle
           </Button>
         }
@@ -80,14 +81,22 @@ function BundlesPage() {
 
       <CreateBundleWizard
         open={open}
-        setOpen={setOpen}
+        setOpen={(v) => { setOpen(v); if (!v) setEditing(null); }}
+        editBundle={editing}
         onComplete={(meta, moduleIds) => {
-          const id = createBundle({ ...meta, module_ids: [], status: "active", is_template: false });
-          if (moduleIds.length) setBundleModules(id, moduleIds);
-          toast.success("Bundle created");
-          navigate({ to: "/bundles/$bundleId", params: { bundleId: id } });
+          if (editing) {
+            updateBundle(editing.id, meta);
+            setBundleModules(editing.id, moduleIds);
+            toast.success("Bundle updated");
+          } else {
+            const id = createBundle({ ...meta, module_ids: [], status: "active", is_template: false });
+            if (moduleIds.length) setBundleModules(id, moduleIds);
+            toast.success("Bundle created");
+            navigate({ to: "/bundles/$bundleId", params: { bundleId: id } });
+          }
         }}
       />
+
 
       <Card className="p-4 mb-5">
         <div className="relative max-w-md">
