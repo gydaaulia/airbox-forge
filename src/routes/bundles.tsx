@@ -663,7 +663,7 @@ function CreateBundleWizard({
             </Button>
           ) : (
             <Button onClick={finish} className="gap-1">
-              <Check className="size-4" /> Create bundle
+              <Check className="size-4" /> {isEdit ? "Save changes" : "Create bundle"}
             </Button>
           )}
         </DialogFooter>
