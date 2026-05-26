@@ -98,7 +98,7 @@ function Dashboard() {
     },
     {
       label: "Monthly Revenue",
-      value: `$${mrr.toLocaleString()}`,
+      value: formatIDR(mrr),
       icon: TrendingUp,
       hint: "estimated MRR",
       tone: "text-chart-4",
