@@ -376,7 +376,7 @@ function CreateBundleWizard({
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Create a new bundle</DialogTitle>
+          <DialogTitle>{isEdit ? `Edit bundle — ${editBundle?.name}` : "Create a new bundle"}</DialogTitle>
           <DialogDescription>
             Step {step + 1} of {STEPS.length} — {STEPS[step].label}
           </DialogDescription>
