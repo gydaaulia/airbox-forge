@@ -567,7 +567,7 @@ function CreateBundleWizard({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Monthly price ($)</Label>
+                  <Label>Monthly price (Rp)</Label>
                   <Input
                     type="number"
                     value={meta.monthly_price}
@@ -576,7 +576,7 @@ function CreateBundleWizard({
                   />
                 </div>
                 <div>
-                  <Label>Yearly price ($)</Label>
+                  <Label>Yearly price (Rp)</Label>
                   <Input
                     type="number"
                     value={meta.yearly_price}
