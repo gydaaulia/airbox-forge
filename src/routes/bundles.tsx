@@ -141,11 +141,13 @@ function BundlesPage() {
 
 function BundleCard({
   bundle,
+  onEdit,
   onDuplicate,
   onArchive,
   onToggle,
 }: {
   bundle: Bundle;
+  onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   onToggle: () => void;
@@ -174,38 +176,44 @@ function BundleCard({
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Modules</div>
         </div>
         <div className="p-2 rounded-md bg-muted/60">
-          <div className="text-xs font-semibold">${bundle.monthly_price}</div>
+          <div className="text-xs font-semibold">{formatIDR(bundle.monthly_price)}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">/mo</div>
         </div>
         <div className="p-2 rounded-md bg-muted/60">
-          <div className="text-xs font-semibold">${bundle.yearly_price}</div>
+          <div className="text-xs font-semibold">{formatIDR(bundle.yearly_price)}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">/yr</div>
         </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onDuplicate} className="h-8 px-2">
+          <Button variant="ghost" size="sm" onClick={onDuplicate} className="h-8 px-2" title="Duplicate">
             <Copy className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={onArchive} className="h-8 px-2">
+          <Button variant="ghost" size="sm" onClick={onArchive} className="h-8 px-2" title="Archive">
             <Archive className="size-3.5" />
           </Button>
           <Button variant="ghost" size="sm" onClick={onToggle} className="h-8 px-2 text-xs">
             {bundle.status === "active" ? "Deactivate" : "Activate"}
           </Button>
         </div>
-        <Link
-          to="/bundles/$bundleId"
-          params={{ bundleId: bundle.id }}
-          className="text-xs font-medium text-primary flex items-center gap-1 hover:gap-1.5 transition-all"
-        >
-          <Pencil className="size-3.5" /> Edit <ArrowRight className="size-3.5" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onEdit} className="h-8 px-2 gap-1 text-xs">
+            <Pencil className="size-3.5" /> Edit
+          </Button>
+          <Link
+            to="/bundles/$bundleId"
+            params={{ bundleId: bundle.id }}
+            className="text-xs font-medium text-primary flex items-center gap-1 hover:gap-1.5 transition-all"
+          >
+            Open <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
       </div>
     </Card>
   );
 }
+
 
 // =============== Wizard ===============
 
