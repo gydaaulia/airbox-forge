@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAirbox, type Bundle, type Module, type PricingType } from "@/store/airbox";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -34,7 +34,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatIDR } from "@/lib/utils";
 
 export const Route = createFileRoute("/bundles")({
   head: () => ({
@@ -47,10 +47,11 @@ export const Route = createFileRoute("/bundles")({
 });
 
 function BundlesPage() {
-  const { bundles, createBundle, setBundleModules, duplicateBundle, archiveBundle, toggleBundleStatus } = useAirbox();
+  const { bundles, createBundle, updateBundle, setBundleModules, duplicateBundle, archiveBundle, toggleBundleStatus } = useAirbox();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Bundle | null>(null);
 
   const visible = useMemo(
     () =>
@@ -72,7 +73,7 @@ function BundlesPage() {
         title="Product Bundles"
         description="Create and assign product bundles. Use the guided wizard to build a bundle from the module library."
         actions={
-          <Button className="gap-1.5" onClick={() => setOpen(true)}>
+          <Button className="gap-1.5" onClick={() => { setEditing(null); setOpen(true); }}>
             <Plus className="size-4" /> New bundle
           </Button>
         }
@@ -80,14 +81,22 @@ function BundlesPage() {
 
       <CreateBundleWizard
         open={open}
-        setOpen={setOpen}
+        setOpen={(v) => { setOpen(v); if (!v) setEditing(null); }}
+        editBundle={editing}
         onComplete={(meta, moduleIds) => {
-          const id = createBundle({ ...meta, module_ids: [], status: "active", is_template: false });
-          if (moduleIds.length) setBundleModules(id, moduleIds);
-          toast.success("Bundle created");
-          navigate({ to: "/bundles/$bundleId", params: { bundleId: id } });
+          if (editing) {
+            updateBundle(editing.id, meta);
+            setBundleModules(editing.id, moduleIds);
+            toast.success("Bundle updated");
+          } else {
+            const id = createBundle({ ...meta, module_ids: [], status: "active", is_template: false });
+            if (moduleIds.length) setBundleModules(id, moduleIds);
+            toast.success("Bundle created");
+            navigate({ to: "/bundles/$bundleId", params: { bundleId: id } });
+          }
         }}
       />
+
 
       <Card className="p-4 mb-5">
         <div className="relative max-w-md">
@@ -111,6 +120,7 @@ function BundlesPage() {
             <BundleCard
               key={b.id}
               bundle={b}
+              onEdit={() => { setEditing(b); setOpen(true); }}
               onDuplicate={() => {
                 duplicateBundle(b.id);
                 toast.success("Bundle duplicated");
@@ -128,13 +138,16 @@ function BundlesPage() {
   );
 }
 
+
 function BundleCard({
   bundle,
+  onEdit,
   onDuplicate,
   onArchive,
   onToggle,
 }: {
   bundle: Bundle;
+  onEdit: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   onToggle: () => void;
@@ -163,38 +176,44 @@ function BundleCard({
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Modules</div>
         </div>
         <div className="p-2 rounded-md bg-muted/60">
-          <div className="text-xs font-semibold">${bundle.monthly_price}</div>
+          <div className="text-xs font-semibold">{formatIDR(bundle.monthly_price)}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">/mo</div>
         </div>
         <div className="p-2 rounded-md bg-muted/60">
-          <div className="text-xs font-semibold">${bundle.yearly_price}</div>
+          <div className="text-xs font-semibold">{formatIDR(bundle.yearly_price)}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">/yr</div>
         </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onDuplicate} className="h-8 px-2">
+          <Button variant="ghost" size="sm" onClick={onDuplicate} className="h-8 px-2" title="Duplicate">
             <Copy className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={onArchive} className="h-8 px-2">
+          <Button variant="ghost" size="sm" onClick={onArchive} className="h-8 px-2" title="Archive">
             <Archive className="size-3.5" />
           </Button>
           <Button variant="ghost" size="sm" onClick={onToggle} className="h-8 px-2 text-xs">
             {bundle.status === "active" ? "Deactivate" : "Activate"}
           </Button>
         </div>
-        <Link
-          to="/bundles/$bundleId"
-          params={{ bundleId: bundle.id }}
-          className="text-xs font-medium text-primary flex items-center gap-1 hover:gap-1.5 transition-all"
-        >
-          <Pencil className="size-3.5" /> Edit <ArrowRight className="size-3.5" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onEdit} className="h-8 px-2 gap-1 text-xs">
+            <Pencil className="size-3.5" /> Edit
+          </Button>
+          <Link
+            to="/bundles/$bundleId"
+            params={{ bundleId: bundle.id }}
+            className="text-xs font-medium text-primary flex items-center gap-1 hover:gap-1.5 transition-all"
+          >
+            Open <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
       </div>
     </Card>
   );
 }
+
 
 // =============== Wizard ===============
 
@@ -210,39 +229,60 @@ const STEPS = [
 function CreateBundleWizard({
   open,
   setOpen,
+  editBundle,
   onComplete,
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
+  editBundle?: Bundle | null;
   onComplete: (meta: Meta, moduleIds: string[]) => void;
 }) {
   const { modules, resolveDependencies } = useAirbox();
+  const isEdit = !!editBundle;
+  const initialMeta = (): Meta =>
+    editBundle
+      ? {
+          name: editBundle.name,
+          code: editBundle.code,
+          description: editBundle.description,
+          category: editBundle.category,
+          pricing_type: editBundle.pricing_type,
+          monthly_price: editBundle.monthly_price,
+          yearly_price: editBundle.yearly_price,
+        }
+      : {
+          name: "",
+          code: "",
+          description: "",
+          category: "Custom",
+          pricing_type: "monthly",
+          monthly_price: 0,
+          yearly_price: 0,
+        };
   const [step, setStep] = useState(0);
-  const [meta, setMeta] = useState<Meta>({
-    name: "",
-    code: "",
-    description: "",
-    category: "Custom",
-    pricing_type: "monthly",
-    monthly_price: 0,
-    yearly_price: 0,
-  });
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [meta, setMeta] = useState<Meta>(initialMeta);
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(editBundle?.module_ids ?? []),
+  );
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
 
+  // Re-sync when a different bundle is opened for editing
+  useEffect(() => {
+    if (open) {
+      setStep(0);
+      setMeta(initialMeta());
+      setSelected(new Set(editBundle?.module_ids ?? []));
+      setQ("");
+      setCat("all");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editBundle?.id]);
+
   const reset = () => {
     setStep(0);
-    setMeta({
-      name: "",
-      code: "",
-      description: "",
-      category: "Custom",
-      pricing_type: "monthly",
-      monthly_price: 0,
-      yearly_price: 0,
-    });
-    setSelected(new Set());
+    setMeta(initialMeta());
+    setSelected(new Set(editBundle?.module_ids ?? []));
     setQ("");
     setCat("all");
   };
@@ -251,6 +291,8 @@ function CreateBundleWizard({
     setOpen(v);
     if (!v) reset();
   };
+
+
 
   const categories = useMemo(
     () => Array.from(new Set(modules.map((m) => m.category))).sort(),
@@ -334,7 +376,7 @@ function CreateBundleWizard({
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Create a new bundle</DialogTitle>
+          <DialogTitle>{isEdit ? `Edit bundle — ${editBundle?.name}` : "Create a new bundle"}</DialogTitle>
           <DialogDescription>
             Step {step + 1} of {STEPS.length} — {STEPS[step].label}
           </DialogDescription>
@@ -525,7 +567,7 @@ function CreateBundleWizard({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Monthly price ($)</Label>
+                  <Label>Monthly price (Rp)</Label>
                   <Input
                     type="number"
                     value={meta.monthly_price}
@@ -534,7 +576,7 @@ function CreateBundleWizard({
                   />
                 </div>
                 <div>
-                  <Label>Yearly price ($)</Label>
+                  <Label>Yearly price (Rp)</Label>
                   <Input
                     type="number"
                     value={meta.yearly_price}
@@ -571,11 +613,11 @@ function CreateBundleWizard({
                     <div className="text-[10px] text-muted-foreground uppercase">Modules</div>
                   </div>
                   <div className="p-2 rounded-md bg-muted/60">
-                    <div className="text-sm font-semibold">${meta.monthly_price}</div>
+                    <div className="text-sm font-semibold">{formatIDR(meta.monthly_price)}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">/mo</div>
                   </div>
                   <div className="p-2 rounded-md bg-muted/60">
-                    <div className="text-sm font-semibold">${meta.yearly_price}</div>
+                    <div className="text-sm font-semibold">{formatIDR(meta.yearly_price)}</div>
                     <div className="text-[10px] text-muted-foreground uppercase">/yr</div>
                   </div>
                 </div>
@@ -621,7 +663,7 @@ function CreateBundleWizard({
             </Button>
           ) : (
             <Button onClick={finish} className="gap-1">
-              <Check className="size-4" /> Create bundle
+              <Check className="size-4" /> {isEdit ? "Save changes" : "Create bundle"}
             </Button>
           )}
         </DialogFooter>

@@ -265,11 +265,11 @@ function BundleBuilder() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Monthly $</Label>
+                  <Label>Monthly (Rp)</Label>
                   <Input type="number" value={draftMeta.monthly_price} onChange={(e) => setDraftMeta({ ...draftMeta, monthly_price: +e.target.value })} />
                 </div>
                 <div>
-                  <Label>Yearly $</Label>
+                  <Label>Yearly (Rp)</Label>
                   <Input type="number" value={draftMeta.yearly_price} onChange={(e) => setDraftMeta({ ...draftMeta, yearly_price: +e.target.value })} />
                 </div>
               </div>
