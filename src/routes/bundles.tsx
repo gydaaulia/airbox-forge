@@ -120,6 +120,7 @@ function BundlesPage() {
             <BundleCard
               key={b.id}
               bundle={b}
+              onEdit={() => { setEditing(b); setOpen(true); }}
               onDuplicate={() => {
                 duplicateBundle(b.id);
                 toast.success("Bundle duplicated");
@@ -136,6 +137,7 @@ function BundlesPage() {
     </div>
   );
 }
+
 
 function BundleCard({
   bundle,
