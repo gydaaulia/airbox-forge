@@ -328,6 +328,7 @@ function seedRoles(bundles: Bundle[]): Role[] {
 
 interface AirboxState {
   modules: Module[];
+  categories: string[];
   bundles: Bundle[];
   companies: Company[];
   subscriptions: Subscription[];
@@ -337,8 +338,24 @@ interface AirboxState {
   assignments: Assignment[];
 
   // Modules
-  importModules: (json: string) => { added: number; error?: string };
+  importModules: (json: string) => { added: number; error?: string; newCategories?: string[] };
   toggleModuleStatus: (id: string) => void;
+  addModule: (input: {
+    name: string;
+    category: string;
+    group: string;
+    dependencies?: string[];
+  }) => { ok: true; id: string } | { ok: false; error: string };
+  updateModule: (
+    id: string,
+    patch: Partial<Pick<Module, "name" | "category" | "group" | "dependencies">>,
+  ) => void;
+  deleteModule: (id: string) => { ok: true } | { ok: false; error: string };
+
+  // Categories
+  addCategory: (name: string) => { ok: true } | { ok: false; error: string };
+  renameCategory: (oldName: string, newName: string) => { ok: true } | { ok: false; error: string };
+  deleteCategory: (name: string) => { ok: true } | { ok: false; error: string };
 
   // Bundles
   createBundle: (b: Omit<Bundle, "id" | "created_at">) => string;
