@@ -454,6 +454,7 @@ export const useAirbox = create<AirboxState>()(
 
       return {
         modules,
+        categories: Array.from(new Set(modules.map((m) => m.category))).sort(),
         bundles,
         companies,
         subscriptions: initialSubs,
