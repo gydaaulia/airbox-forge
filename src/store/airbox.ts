@@ -489,8 +489,14 @@ export const useAirbox = create<AirboxState>()(
               });
               existing.add(id);
             }
-            set({ modules: [...get().modules, ...additions] });
-            return { added: additions.length };
+            const newCats = Array.from(
+              new Set(additions.map((a) => a.category).filter((c) => !get().categories.includes(c))),
+            );
+            set({
+              modules: [...get().modules, ...additions],
+              categories: [...get().categories, ...newCats].sort(),
+            });
+            return { added: additions.length, newCategories: newCats };
           } catch (e) {
             return { added: 0, error: (e as Error).message };
           }
@@ -502,6 +508,92 @@ export const useAirbox = create<AirboxState>()(
               m.id === id ? { ...m, status: m.status === "active" ? "inactive" : "active" } : m,
             ),
           }),
+
+        addModule: ({ name, category, group, dependencies = [] }) => {
+          const trimmed = name.trim();
+          if (!trimmed) return { ok: false, error: "Name is required." };
+          if (!category.trim()) return { ok: false, error: "Category is required." };
+          if (!group.trim()) return { ok: false, error: "Group is required." };
+          const id = nameToId(trimmed);
+          if (get().modules.some((m) => m.id === id))
+            return { ok: false, error: "A module with this name already exists." };
+          const mod: Module = {
+            id,
+            name: trimmed,
+            code: id.toUpperCase().replace(/-/g, "_"),
+            category: category.trim(),
+            group: group.trim(),
+            dependencies: dependencies.filter((d) => d !== id),
+            status: "active",
+          };
+          const cats = get().categories.includes(mod.category)
+            ? get().categories
+            : [...get().categories, mod.category].sort();
+          set({ modules: [...get().modules, mod], categories: cats });
+          return { ok: true, id };
+        },
+
+        updateModule: (id, patch) =>
+          set({
+            modules: get().modules.map((m) =>
+              m.id === id
+                ? { ...m, ...patch, dependencies: (patch.dependencies ?? m.dependencies).filter((d) => d !== id) }
+                : m,
+            ),
+          }),
+
+        deleteModule: (id) => {
+          const dependents = get().modules.filter((m) => m.dependencies.includes(id));
+          if (dependents.length > 0)
+            return {
+              ok: false,
+              error: `Cannot delete: ${dependents.length} module(s) depend on this. Remove dependencies first.`,
+            };
+          const bundlesUsing = get().bundles.filter((b) => b.module_ids.includes(id));
+          if (bundlesUsing.length > 0)
+            return {
+              ok: false,
+              error: `Cannot delete: used by ${bundlesUsing.length} bundle(s). Remove from bundles first.`,
+            };
+          set({ modules: get().modules.filter((m) => m.id !== id) });
+          return { ok: true };
+        },
+
+        addCategory: (name) => {
+          const n = name.trim();
+          if (!n) return { ok: false, error: "Name is required." };
+          if (get().categories.some((c) => c.toLowerCase() === n.toLowerCase()))
+            return { ok: false, error: "Category already exists." };
+          set({ categories: [...get().categories, n].sort() });
+          return { ok: true };
+        },
+
+        renameCategory: (oldName, newName) => {
+          const n = newName.trim();
+          if (!n) return { ok: false, error: "Name is required." };
+          if (!get().categories.includes(oldName))
+            return { ok: false, error: "Category not found." };
+          if (
+            oldName !== n &&
+            get().categories.some((c) => c.toLowerCase() === n.toLowerCase())
+          )
+            return { ok: false, error: "A category with that name already exists." };
+          set({
+            categories: get()
+              .categories.map((c) => (c === oldName ? n : c))
+              .sort(),
+            modules: get().modules.map((m) => (m.category === oldName ? { ...m, category: n } : m)),
+          });
+          return { ok: true };
+        },
+
+        deleteCategory: (name) => {
+          const used = get().modules.filter((m) => m.category === name).length;
+          if (used > 0)
+            return { ok: false, error: `Cannot delete: ${used} module(s) still use this category.` };
+          set({ categories: get().categories.filter((c) => c !== name) });
+          return { ok: true };
+        },
 
         createBundle: (b) => {
           const id = uid();
