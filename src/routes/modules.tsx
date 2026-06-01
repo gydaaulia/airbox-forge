@@ -515,7 +515,7 @@ function ModuleDetailDialog({
   onEdit: (m: Module) => void;
   onDelete: (m: Module) => void;
   allModules: Module[];
-  bundles: ReturnType<typeof useAirbox>["bundles"];
+  bundles: Bundle[];
 }) {
   const byId = useMemo(() => new Map(allModules.map((x) => [x.id, x])), [allModules]);
   if (!m) return null;
