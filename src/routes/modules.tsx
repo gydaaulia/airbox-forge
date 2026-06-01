@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useAirbox, type Module } from "@/store/airbox";
+import { useAirbox, type Module, type Bundle } from "@/store/airbox";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
