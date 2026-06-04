@@ -22,6 +22,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -71,6 +81,10 @@ function RbacPage() {
 
   const [activeRoleId, setActiveRoleId] = useState<string>(bundleRoles[0]?.id ?? "");
   const role = roles.find((r) => r.id === activeRoleId);
+
+  const [confirmAction, setConfirmAction] = useState<
+    { type: "copy" | "delete"; roleId: string; roleName: string } | null
+  >(null);
 
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
@@ -189,11 +203,7 @@ function RbacPage() {
                           className="size-6 rounded grid place-items-center hover:bg-black/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const id = duplicateRole(r.id);
-                            if (id) {
-                              setActiveRoleId(id);
-                              toast.success("Role duplicated");
-                            }
+                            setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name });
                           }}
                           role="button"
                         >
@@ -203,10 +213,7 @@ function RbacPage() {
                           className="size-6 rounded grid place-items-center hover:bg-black/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Delete role "${r.name}"?`)) {
-                              deleteRole(r.id);
-                              if (activeRoleId === r.id) setActiveRoleId("");
-                            }
+                            setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name });
                           }}
                           role="button"
                         >
@@ -245,6 +252,72 @@ function RbacPage() {
               )}
             </>
           )}
+
+          {/* Copy confirmation */}
+          <AlertDialog
+            open={confirmAction?.type === "copy"}
+            onOpenChange={(open) => {
+              if (!open) setConfirmAction(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Copy role?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Duplicate role "{confirmAction?.roleName ?? ""}" with all its permissions.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmAction(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (confirmAction?.type === "copy") {
+                      const id = duplicateRole(confirmAction.roleId);
+                      if (id) {
+                        setActiveRoleId(id);
+                        toast.success("Role duplicated");
+                      }
+                    }
+                    setConfirmAction(null);
+                  }}
+                >
+                  Copy
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Delete confirmation */}
+          <AlertDialog
+            open={confirmAction?.type === "delete"}
+            onOpenChange={(open) => {
+              if (!open) setConfirmAction(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete role?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{confirmAction?.roleName ?? ""}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmAction(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (confirmAction?.type === "delete") {
+                      deleteRole(confirmAction.roleId);
+                      if (activeRoleId === confirmAction.roleId) setActiveRoleId("");
+                      toast.success("Role deleted");
+                    }
+                    setConfirmAction(null);
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
