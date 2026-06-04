@@ -203,11 +203,7 @@ function RbacPage() {
                           className="size-6 rounded grid place-items-center hover:bg-black/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const id = duplicateRole(r.id);
-                            if (id) {
-                              setActiveRoleId(id);
-                              toast.success("Role duplicated");
-                            }
+                            setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name });
                           }}
                           role="button"
                         >
@@ -217,10 +213,7 @@ function RbacPage() {
                           className="size-6 rounded grid place-items-center hover:bg-black/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Delete role "${r.name}"?`)) {
-                              deleteRole(r.id);
-                              if (activeRoleId === r.id) setActiveRoleId("");
-                            }
+                            setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name });
                           }}
                           role="button"
                         >
