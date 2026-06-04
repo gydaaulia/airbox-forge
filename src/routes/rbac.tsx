@@ -401,3 +401,53 @@ function PermissionMatrix({
     </Card>
   );
 }
+
+function SpecialAccessDetail({
+  moduleName,
+  selected,
+  onToggle,
+}: {
+  moduleName: string;
+  selected: SpecialAction[];
+  onToggle: (action: SpecialAction, value: boolean) => void;
+}) {
+  const count = selected.length;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]">
+          <Settings2 className="size-3" />
+          Detail
+          {count > 0 && (
+            <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
+              {count}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 p-3">
+        <div className="mb-2">
+          <div className="text-xs font-semibold">{moduleName}</div>
+          <div className="text-[10px] text-muted-foreground">
+            Special access — {count} of {SPECIAL_ACTIONS.length} enabled
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+          {SPECIAL_ACTIONS.map((sa) => {
+            const on = selected.includes(sa);
+            return (
+              <label
+                key={sa}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer"
+              >
+                <Checkbox checked={on} onCheckedChange={(v) => onToggle(sa, !!v)} />
+                <span className="text-xs capitalize">{sa}</span>
+              </label>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
