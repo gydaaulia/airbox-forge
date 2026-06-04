@@ -82,6 +82,10 @@ function RbacPage() {
   const [activeRoleId, setActiveRoleId] = useState<string>(bundleRoles[0]?.id ?? "");
   const role = roles.find((r) => r.id === activeRoleId);
 
+  const [confirmAction, setConfirmAction] = useState<
+    { type: "copy" | "delete"; roleId: string; roleName: string } | null
+  >(null);
+
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
     [bundle, modules],
