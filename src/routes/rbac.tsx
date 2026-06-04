@@ -432,6 +432,32 @@ function SpecialAccessDetail({
             Special access — {count} of {SPECIAL_ACTIONS.length} enabled
           </div>
         </div>
+        <div className="flex gap-2 mb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-[10px] flex-1"
+            onClick={() => {
+              for (const sa of SPECIAL_ACTIONS) {
+                if (!selected.includes(sa)) onToggle(sa, true);
+              }
+            }}
+          >
+            Select all
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-[10px] flex-1"
+            onClick={() => {
+              for (const sa of SPECIAL_ACTIONS) {
+                if (selected.includes(sa)) onToggle(sa, false);
+              }
+            }}
+          >
+            Unselect all
+          </Button>
+        </div>
         <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
           {SPECIAL_ACTIONS.map((sa) => {
             const on = selected.includes(sa);
