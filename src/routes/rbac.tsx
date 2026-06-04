@@ -382,25 +382,13 @@ function PermissionMatrix({
                         </td>
                       ))}
                       <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-1.5">
-                          {SPECIAL_ACTIONS.map((sa) => {
-                            const on = p?.special.includes(sa);
-                            return (
-                              <button
-                                key={sa}
-                                onClick={() => onToggleSpecial(m.id, sa, !on)}
-                                className={`px-2 py-0.5 rounded text-[10px] capitalize border transition-colors ${
-                                  on
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "bg-card border-input text-muted-foreground hover:bg-muted"
-                                }`}
-                              >
-                                {sa}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <SpecialAccessDetail
+                          moduleName={m.name}
+                          selected={p?.special ?? []}
+                          onToggle={(sa, v) => onToggleSpecial(m.id, sa, v)}
+                        />
                       </td>
+
                     </tr>
                   );
                 })}
