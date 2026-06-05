@@ -402,10 +402,15 @@ function NewRoleDialog({ onCreate }: { onCreate: (name: string, desc: string) =>
   );
 }
 
+type RoleUser = { id: string; name: string; email: string; status: User["status"]; companyName: string };
+
 function RolesSidebar({
   bundle,
   roles,
   activeRoleId,
+  dirtyRoleIds,
+  hasDirty,
+  usersByRole,
   onSelect,
   onSync,
   onCreate,
@@ -415,6 +420,9 @@ function RolesSidebar({
   bundle: { id: string; name: string; module_ids: string[] };
   roles: Role[];
   activeRoleId: string;
+  dirtyRoleIds: Set<string>;
+  hasDirty: boolean;
+  usersByRole: Map<string, RoleUser[]>;
   onSelect: (id: string) => void;
   onSync: () => void;
   onCreate: (name: string, desc: string) => void;
@@ -449,6 +457,11 @@ function RolesSidebar({
     return list;
   }, [roles, query, sortBy]);
 
+  const dirtyCount = useMemo(
+    () => roles.filter((r) => dirtyRoleIds.has(r.id)).length,
+    [roles, dirtyRoleIds],
+  );
+
   return (
     <Card className="p-0 h-fit overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
       <div className="p-3 border-b border-border">
@@ -463,8 +476,24 @@ function RolesSidebar({
         </div>
         <div className="flex items-center gap-1.5">
           <NewRoleDialog onCreate={onCreate} />
-          <Button variant="outline" size="sm" className="h-8" onClick={onSync} title="Sync modules">
+          <Button
+            variant={hasDirty ? "default" : "outline"}
+            size="sm"
+            className={`h-8 gap-1.5 ${
+              hasDirty
+                ? "bg-amber-500 hover:bg-amber-500/90 text-white shadow-[0_0_0_3px_rgba(245,158,11,0.18)] animate-pulse"
+                : ""
+            }`}
+            onClick={onSync}
+            title={hasDirty ? "You have unsynced changes" : "Sync modules"}
+          >
+            <RefreshCw className="size-3.5" />
             Sync
+            {hasDirty && (
+              <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white text-amber-600">
+                {dirtyCount}
+              </Badge>
+            )}
           </Button>
         </div>
       </div>
@@ -499,10 +528,12 @@ function RolesSidebar({
           <div className="flex flex-col gap-0.5">
             {filtered.map((r) => {
               const active = r.id === activeRoleId;
+              const dirty = dirtyRoleIds.has(r.id);
               const grantCount = r.permissions.reduce(
                 (n, p) => n + (p.create ? 1 : 0) + (p.read ? 1 : 0) + (p.update ? 1 : 0) + (p.delete ? 1 : 0),
                 0,
               );
+              const roleUsers = usersByRole.get(r.id) ?? [];
               return (
                 <div
                   key={r.id}
@@ -523,9 +554,17 @@ function RolesSidebar({
                             default
                           </Badge>
                         )}
+                        {dirty && (
+                          <span
+                            className="size-1.5 rounded-full bg-amber-500 shrink-0"
+                            title="Unsynced changes"
+                          />
+                        )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {grantCount} grant{grantCount === 1 ? "" : "s"}
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <span>{grantCount} grant{grantCount === 1 ? "" : "s"}</span>
+                        <span>·</span>
+                        <RoleUsersPopover roleName={r.name} users={roleUsers} />
                       </div>
                     </div>
                     <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
@@ -558,6 +597,58 @@ function RolesSidebar({
         )}
       </div>
     </Card>
+  );
+}
+
+function RoleUsersPopover({ roleName, users }: { roleName: string; users: RoleUser[] }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex items-center gap-1 hover:text-foreground hover:underline cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          title="View users"
+        >
+          <Users className="size-2.5" />
+          {users.length} user{users.length === 1 ? "" : "s"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-72 p-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-3 py-2 border-b border-border">
+          <div className="text-xs font-semibold truncate">{roleName}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {users.length} user{users.length === 1 ? "" : "s"} assigned
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto py-1">
+          {users.length === 0 ? (
+            <div className="text-[11px] text-muted-foreground text-center py-6 px-3">
+              No users assigned to this role yet.
+            </div>
+          ) : (
+            users.map((u) => (
+              <div key={u.id} className="px-3 py-1.5 hover:bg-muted text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium truncate">{u.name}</span>
+                  <Badge
+                    variant={u.status === "active" ? "secondary" : "outline"}
+                    className="text-[9px] h-3.5 px-1 capitalize shrink-0"
+                  >
+                    {u.status}
+                  </Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">{u.email}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{u.companyName}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
