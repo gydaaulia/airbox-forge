@@ -62,6 +62,9 @@ function RbacPage() {
     bundles,
     modules,
     roles,
+    users,
+    assignments,
+    companies,
     createRole,
     deleteRole,
     duplicateRole,
@@ -86,6 +89,61 @@ function RbacPage() {
     { type: "copy" | "delete"; roleId: string; roleName: string } | null
   >(null);
 
+  // Dirty-state tracking for unsaved role permission changes
+  const [dirtyRoleIds, setDirtyRoleIds] = useState<Set<string>>(new Set());
+  const [pendingSwitch, setPendingSwitch] = useState<
+    | { type: "bundle"; targetId: string }
+    | { type: "role"; targetId: string }
+    | null
+  >(null);
+
+  const markDirty = (id: string) =>
+    setDirtyRoleIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+  const clearDirtyForBundle = (bid: string) =>
+    setDirtyRoleIds((prev) => {
+      const next = new Set(prev);
+      for (const r of roles) if (r.bundle_id === bid && next.has(r.id)) next.delete(r.id);
+      return next;
+    });
+
+  const hasDirtyInBundle = useMemo(
+    () => bundleRoles.some((r) => dirtyRoleIds.has(r.id)),
+    [bundleRoles, dirtyRoleIds],
+  );
+
+  const requestSwitchBundle = (targetId: string) => {
+    if (targetId === bundleId) return;
+    if (hasDirtyInBundle) {
+      setPendingSwitch({ type: "bundle", targetId });
+      return;
+    }
+    setBundleId(targetId);
+    const first = roles.find((r) => r.bundle_id === targetId);
+    setActiveRoleId(first?.id ?? "");
+  };
+
+  const requestSwitchRole = (targetId: string) => {
+    if (targetId === activeRoleId) return;
+    if (activeRoleId && dirtyRoleIds.has(activeRoleId)) {
+      setPendingSwitch({ type: "role", targetId });
+      return;
+    }
+    setActiveRoleId(targetId);
+  };
+
+  const doSync = () => {
+    if (!bundle) return;
+    syncRolesWithBundle(bundle.id);
+    clearDirtyForBundle(bundle.id);
+    toast.success("Roles synced with bundle modules");
+  };
+
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
     [bundle, modules],
@@ -99,6 +157,29 @@ function RbacPage() {
     }
     return Array.from(out.entries());
   }, [bundleModules]);
+
+  // Users assigned per role within current bundle
+  const usersByRole = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; email: string; status: User["status"]; companyName: string }>>();
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const companyById = new Map(companies.map((c) => [c.id, c]));
+    for (const a of assignments) {
+      const u = userById.get(a.user_id);
+      if (!u) continue;
+      const c = companyById.get(a.company_id);
+      const arr = map.get(a.role_id) ?? [];
+      arr.push({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        status: u.status,
+        companyName: c?.name ?? "—",
+      });
+      map.set(a.role_id, arr);
+    }
+    return map;
+  }, [assignments, users, companies]);
+
 
   return (
     <div>
