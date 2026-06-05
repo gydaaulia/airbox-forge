@@ -7,6 +7,7 @@ import {
   type CrudAction,
   type Role,
   type SpecialAction,
+  type User,
 } from "@/store/airbox";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -41,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Plus, Copy, Trash2, Users, Settings2, Search, ArrowUpDown } from "lucide-react";
+import { Shield, Plus, Copy, Trash2, Users, Settings2, Search, ArrowUpDown, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
@@ -62,6 +63,9 @@ function RbacPage() {
     bundles,
     modules,
     roles,
+    users,
+    assignments,
+    companies,
     createRole,
     deleteRole,
     duplicateRole,
@@ -86,6 +90,61 @@ function RbacPage() {
     { type: "copy" | "delete"; roleId: string; roleName: string } | null
   >(null);
 
+  // Dirty-state tracking for unsaved role permission changes
+  const [dirtyRoleIds, setDirtyRoleIds] = useState<Set<string>>(new Set());
+  const [pendingSwitch, setPendingSwitch] = useState<
+    | { type: "bundle"; targetId: string }
+    | { type: "role"; targetId: string }
+    | null
+  >(null);
+
+  const markDirty = (id: string) =>
+    setDirtyRoleIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+  const clearDirtyForBundle = (bid: string) =>
+    setDirtyRoleIds((prev) => {
+      const next = new Set(prev);
+      for (const r of roles) if (r.bundle_id === bid && next.has(r.id)) next.delete(r.id);
+      return next;
+    });
+
+  const hasDirtyInBundle = useMemo(
+    () => bundleRoles.some((r) => dirtyRoleIds.has(r.id)),
+    [bundleRoles, dirtyRoleIds],
+  );
+
+  const requestSwitchBundle = (targetId: string) => {
+    if (targetId === bundleId) return;
+    if (hasDirtyInBundle) {
+      setPendingSwitch({ type: "bundle", targetId });
+      return;
+    }
+    setBundleId(targetId);
+    const first = roles.find((r) => r.bundle_id === targetId);
+    setActiveRoleId(first?.id ?? "");
+  };
+
+  const requestSwitchRole = (targetId: string) => {
+    if (targetId === activeRoleId) return;
+    if (activeRoleId && dirtyRoleIds.has(activeRoleId)) {
+      setPendingSwitch({ type: "role", targetId });
+      return;
+    }
+    setActiveRoleId(targetId);
+  };
+
+  const doSync = () => {
+    if (!bundle) return;
+    syncRolesWithBundle(bundle.id);
+    clearDirtyForBundle(bundle.id);
+    toast.success("Roles synced with bundle modules");
+  };
+
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
     [bundle, modules],
@@ -99,6 +158,29 @@ function RbacPage() {
     }
     return Array.from(out.entries());
   }, [bundleModules]);
+
+  // Users assigned per role within current bundle
+  const usersByRole = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; email: string; status: User["status"]; companyName: string }>>();
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const companyById = new Map(companies.map((c) => [c.id, c]));
+    for (const a of assignments) {
+      const u = userById.get(a.user_id);
+      if (!u) continue;
+      const c = companyById.get(a.company_id);
+      const arr = map.get(a.role_id) ?? [];
+      arr.push({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        status: u.status,
+        companyName: c?.name ?? "—",
+      });
+      map.set(a.role_id, arr);
+    }
+    return map;
+  }, [assignments, users, companies]);
+
 
   return (
     <div>
@@ -117,21 +199,23 @@ function RbacPage() {
             {realBundles.map((b) => {
               const count = roles.filter((r) => r.bundle_id === b.id).length;
               const active = b.id === bundleId;
+              const hasDirty = roles.some((r) => r.bundle_id === b.id && dirtyRoleIds.has(r.id));
               return (
                 <button
                   key={b.id}
-                  onClick={() => {
-                    setBundleId(b.id);
-                    const first = roles.find((r) => r.bundle_id === b.id);
-                    setActiveRoleId(first?.id ?? "");
-                  }}
+                  onClick={() => requestSwitchBundle(b.id)}
                   className={`text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
                     active ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
                   }`}
                 >
-                  <span className="truncate">
-                    <span className="font-medium text-foreground">{b.name}</span>
-                    <span className="block text-[10px] font-mono text-muted-foreground">{b.code}</span>
+                  <span className="truncate flex items-center gap-1.5">
+                    {hasDirty && (
+                      <span className="size-1.5 rounded-full bg-amber-500 shrink-0" title="Unsynced changes" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="font-medium text-foreground block truncate">{b.name}</span>
+                      <span className="block text-[10px] font-mono text-muted-foreground">{b.code}</span>
+                    </span>
                   </span>
                   <Badge variant="secondary" className="text-[10px]">{count}</Badge>
                 </button>
@@ -150,11 +234,11 @@ function RbacPage() {
             bundle={bundle}
             roles={bundleRoles}
             activeRoleId={activeRoleId}
-            onSelect={setActiveRoleId}
-            onSync={() => {
-              syncRolesWithBundle(bundle.id);
-              toast.success("Roles synced with bundle modules");
-            }}
+            dirtyRoleIds={dirtyRoleIds}
+            hasDirty={hasDirtyInBundle}
+            usersByRole={usersByRole}
+            onSelect={requestSwitchRole}
+            onSync={doSync}
             onCreate={(name, desc) => {
               const id = createRole(bundle.id, name, desc);
               setActiveRoleId(id);
@@ -173,19 +257,25 @@ function RbacPage() {
                 <PermissionMatrix
                   role={role}
                   grouped={grouped}
-                  onToggle={(modId, action, value) =>
-                    setPermission(role.id, modId, { [action]: value })
-                  }
+                  onToggle={(modId, action, value) => {
+                    setPermission(role.id, modId, { [action]: value });
+                    markDirty(role.id);
+                  }}
                   onToggleSpecial={(modId, action, value) => {
                     const p = role.permissions.find((x) => x.module_id === modId);
                     const cur = new Set(p?.special ?? []);
                     if (value) cur.add(action);
                     else cur.delete(action);
                     setPermission(role.id, modId, { special: Array.from(cur) as SpecialAction[] });
+                    markDirty(role.id);
                   }}
-                  onBulkCrud={(action, value) => bulkSetCrud(role.id, action, value)}
+                  onBulkCrud={(action, value) => {
+                    bulkSetCrud(role.id, action, value);
+                    markDirty(role.id);
+                  }}
                   onApplyTemplate={(mode) => {
                     applyRoleTemplate(role.id, mode);
+                    markDirty(role.id);
                     toast.success(`Applied "${mode}" template`);
                   }}
                 />
@@ -262,6 +352,72 @@ function RbacPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Unsynced changes confirmation */}
+          <AlertDialog
+            open={pendingSwitch !== null}
+            onOpenChange={(open) => {
+              if (!open) setPendingSwitch(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Unsynced role access changes</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You have unsynced changes on{" "}
+                  {dirtyRoleIds.size === 1 ? "1 role" : `${dirtyRoleIds.size} roles`}. Sync them
+                  now to apply to bundle modules, or discard to continue without saving.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPendingSwitch(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!pendingSwitch) return;
+                    if (pendingSwitch.type === "bundle") {
+                      clearDirtyForBundle(bundleId);
+                      setBundleId(pendingSwitch.targetId);
+                      const first = roles.find((r) => r.bundle_id === pendingSwitch.targetId);
+                      setActiveRoleId(first?.id ?? "");
+                    } else {
+                      if (activeRoleId) {
+                        setDirtyRoleIds((prev) => {
+                          const next = new Set(prev);
+                          next.delete(activeRoleId);
+                          return next;
+                        });
+                      }
+                      setActiveRoleId(pendingSwitch.targetId);
+                    }
+                    setPendingSwitch(null);
+                  }}
+                >
+                  Discard
+                </Button>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!pendingSwitch || !bundle) return;
+                    syncRolesWithBundle(bundle.id);
+                    clearDirtyForBundle(bundle.id);
+                    toast.success("Roles synced");
+                    if (pendingSwitch.type === "bundle") {
+                      setBundleId(pendingSwitch.targetId);
+                      const first = roles.find((r) => r.bundle_id === pendingSwitch.targetId);
+                      setActiveRoleId(first?.id ?? "");
+                    } else {
+                      setActiveRoleId(pendingSwitch.targetId);
+                    }
+                    setPendingSwitch(null);
+                  }}
+                >
+                  Sync &amp; continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
@@ -312,10 +468,15 @@ function NewRoleDialog({ onCreate }: { onCreate: (name: string, desc: string) =>
   );
 }
 
+type RoleUser = { id: string; name: string; email: string; status: User["status"]; companyName: string };
+
 function RolesSidebar({
   bundle,
   roles,
   activeRoleId,
+  dirtyRoleIds,
+  hasDirty,
+  usersByRole,
   onSelect,
   onSync,
   onCreate,
@@ -325,6 +486,9 @@ function RolesSidebar({
   bundle: { id: string; name: string; module_ids: string[] };
   roles: Role[];
   activeRoleId: string;
+  dirtyRoleIds: Set<string>;
+  hasDirty: boolean;
+  usersByRole: Map<string, RoleUser[]>;
   onSelect: (id: string) => void;
   onSync: () => void;
   onCreate: (name: string, desc: string) => void;
@@ -359,6 +523,11 @@ function RolesSidebar({
     return list;
   }, [roles, query, sortBy]);
 
+  const dirtyCount = useMemo(
+    () => roles.filter((r) => dirtyRoleIds.has(r.id)).length,
+    [roles, dirtyRoleIds],
+  );
+
   return (
     <Card className="p-0 h-fit overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
       <div className="p-3 border-b border-border">
@@ -373,8 +542,24 @@ function RolesSidebar({
         </div>
         <div className="flex items-center gap-1.5">
           <NewRoleDialog onCreate={onCreate} />
-          <Button variant="outline" size="sm" className="h-8" onClick={onSync} title="Sync modules">
+          <Button
+            variant={hasDirty ? "default" : "outline"}
+            size="sm"
+            className={`h-8 gap-1.5 ${
+              hasDirty
+                ? "bg-amber-500 hover:bg-amber-500/90 text-white shadow-[0_0_0_3px_rgba(245,158,11,0.18)] animate-pulse"
+                : ""
+            }`}
+            onClick={onSync}
+            title={hasDirty ? "You have unsynced changes" : "Sync modules"}
+          >
+            <RefreshCw className="size-3.5" />
             Sync
+            {hasDirty && (
+              <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white text-amber-600">
+                {dirtyCount}
+              </Badge>
+            )}
           </Button>
         </div>
       </div>
@@ -409,10 +594,12 @@ function RolesSidebar({
           <div className="flex flex-col gap-0.5">
             {filtered.map((r) => {
               const active = r.id === activeRoleId;
+              const dirty = dirtyRoleIds.has(r.id);
               const grantCount = r.permissions.reduce(
                 (n, p) => n + (p.create ? 1 : 0) + (p.read ? 1 : 0) + (p.update ? 1 : 0) + (p.delete ? 1 : 0),
                 0,
               );
+              const roleUsers = usersByRole.get(r.id) ?? [];
               return (
                 <div
                   key={r.id}
@@ -433,9 +620,17 @@ function RolesSidebar({
                             default
                           </Badge>
                         )}
+                        {dirty && (
+                          <span
+                            className="size-1.5 rounded-full bg-amber-500 shrink-0"
+                            title="Unsynced changes"
+                          />
+                        )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {grantCount} grant{grantCount === 1 ? "" : "s"}
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <span>{grantCount} grant{grantCount === 1 ? "" : "s"}</span>
+                        <span>·</span>
+                        <RoleUsersPopover roleName={r.name} users={roleUsers} />
                       </div>
                     </div>
                     <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
@@ -468,6 +663,58 @@ function RolesSidebar({
         )}
       </div>
     </Card>
+  );
+}
+
+function RoleUsersPopover({ roleName, users }: { roleName: string; users: RoleUser[] }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex items-center gap-1 hover:text-foreground hover:underline cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          title="View users"
+        >
+          <Users className="size-2.5" />
+          {users.length} user{users.length === 1 ? "" : "s"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-72 p-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-3 py-2 border-b border-border">
+          <div className="text-xs font-semibold truncate">{roleName}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {users.length} user{users.length === 1 ? "" : "s"} assigned
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto py-1">
+          {users.length === 0 ? (
+            <div className="text-[11px] text-muted-foreground text-center py-6 px-3">
+              No users assigned to this role yet.
+            </div>
+          ) : (
+            users.map((u) => (
+              <div key={u.id} className="px-3 py-1.5 hover:bg-muted text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium truncate">{u.name}</span>
+                  <Badge
+                    variant={u.status === "active" ? "secondary" : "outline"}
+                    className="text-[9px] h-3.5 px-1 capitalize shrink-0"
+                  >
+                    {u.status}
+                  </Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">{u.email}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{u.companyName}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
