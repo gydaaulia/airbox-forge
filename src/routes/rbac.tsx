@@ -199,21 +199,23 @@ function RbacPage() {
             {realBundles.map((b) => {
               const count = roles.filter((r) => r.bundle_id === b.id).length;
               const active = b.id === bundleId;
+              const hasDirty = roles.some((r) => r.bundle_id === b.id && dirtyRoleIds.has(r.id));
               return (
                 <button
                   key={b.id}
-                  onClick={() => {
-                    setBundleId(b.id);
-                    const first = roles.find((r) => r.bundle_id === b.id);
-                    setActiveRoleId(first?.id ?? "");
-                  }}
+                  onClick={() => requestSwitchBundle(b.id)}
                   className={`text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 transition-colors ${
                     active ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
                   }`}
                 >
-                  <span className="truncate">
-                    <span className="font-medium text-foreground">{b.name}</span>
-                    <span className="block text-[10px] font-mono text-muted-foreground">{b.code}</span>
+                  <span className="truncate flex items-center gap-1.5">
+                    {hasDirty && (
+                      <span className="size-1.5 rounded-full bg-amber-500 shrink-0" title="Unsynced changes" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="font-medium text-foreground block truncate">{b.name}</span>
+                      <span className="block text-[10px] font-mono text-muted-foreground">{b.code}</span>
+                    </span>
                   </span>
                   <Badge variant="secondary" className="text-[10px]">{count}</Badge>
                 </button>
