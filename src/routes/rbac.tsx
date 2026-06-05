@@ -7,6 +7,7 @@ import {
   type CrudAction,
   type Role,
   type SpecialAction,
+  type User,
 } from "@/store/airbox";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
