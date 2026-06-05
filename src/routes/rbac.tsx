@@ -234,11 +234,11 @@ function RbacPage() {
             bundle={bundle}
             roles={bundleRoles}
             activeRoleId={activeRoleId}
-            onSelect={setActiveRoleId}
-            onSync={() => {
-              syncRolesWithBundle(bundle.id);
-              toast.success("Roles synced with bundle modules");
-            }}
+            dirtyRoleIds={dirtyRoleIds}
+            hasDirty={hasDirtyInBundle}
+            usersByRole={usersByRole}
+            onSelect={requestSwitchRole}
+            onSync={doSync}
             onCreate={(name, desc) => {
               const id = createRole(bundle.id, name, desc);
               setActiveRoleId(id);
@@ -257,19 +257,25 @@ function RbacPage() {
                 <PermissionMatrix
                   role={role}
                   grouped={grouped}
-                  onToggle={(modId, action, value) =>
-                    setPermission(role.id, modId, { [action]: value })
-                  }
+                  onToggle={(modId, action, value) => {
+                    setPermission(role.id, modId, { [action]: value });
+                    markDirty(role.id);
+                  }}
                   onToggleSpecial={(modId, action, value) => {
                     const p = role.permissions.find((x) => x.module_id === modId);
                     const cur = new Set(p?.special ?? []);
                     if (value) cur.add(action);
                     else cur.delete(action);
                     setPermission(role.id, modId, { special: Array.from(cur) as SpecialAction[] });
+                    markDirty(role.id);
                   }}
-                  onBulkCrud={(action, value) => bulkSetCrud(role.id, action, value)}
+                  onBulkCrud={(action, value) => {
+                    bulkSetCrud(role.id, action, value);
+                    markDirty(role.id);
+                  }}
                   onApplyTemplate={(mode) => {
                     applyRoleTemplate(role.id, mode);
+                    markDirty(role.id);
                     toast.success(`Applied "${mode}" template`);
                   }}
                 />
