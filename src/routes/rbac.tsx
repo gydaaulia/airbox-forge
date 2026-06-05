@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Plus, Copy, Trash2, Users, Settings2 } from "lucide-react";
+import { Shield, Plus, Copy, Trash2, Users, Settings2, Search, ArrowUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
@@ -107,13 +107,13 @@ function RbacPage() {
         description="Define default roles and per-module CRUD + special permissions for each product bundle."
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_280px_1fr] gap-4">
         {/* Bundles list */}
         <Card className="p-3 h-fit">
           <div className="px-2 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
             Product Bundles
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 max-h-[calc(100vh-220px)] overflow-y-auto">
             {realBundles.map((b) => {
               const count = roles.filter((r) => r.bundle_id === b.id).length;
               const active = b.id === bundleId;
@@ -140,91 +140,35 @@ function RbacPage() {
           </div>
         </Card>
 
-        {/* Roles + Matrix */}
+        {/* Roles sidebar */}
+        {!bundle ? (
+          <Card className="p-6 text-center text-muted-foreground text-sm h-fit">
+            Select a bundle.
+          </Card>
+        ) : (
+          <RolesSidebar
+            bundle={bundle}
+            roles={bundleRoles}
+            activeRoleId={activeRoleId}
+            onSelect={setActiveRoleId}
+            onSync={() => {
+              syncRolesWithBundle(bundle.id);
+              toast.success("Roles synced with bundle modules");
+            }}
+            onCreate={(name, desc) => {
+              const id = createRole(bundle.id, name, desc);
+              setActiveRoleId(id);
+              toast.success("Role created");
+            }}
+            onCopy={(r) => setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name })}
+            onDelete={(r) => setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name })}
+          />
+        )}
+
+        {/* Matrix detail */}
         <div className="space-y-4 min-w-0">
-          {!bundle ? (
-            <Card className="p-12 text-center text-muted-foreground">Select a bundle.</Card>
-          ) : (
+          {bundle && (
             <>
-              <Card className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="size-4 text-primary" />
-                      <h3 className="font-semibold tracking-tight">{bundle.name} — Roles</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {bundleRoles.length} role{bundleRoles.length === 1 ? "" : "s"} ·{" "}
-                      {bundle.module_ids.length} modules
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        syncRolesWithBundle(bundle.id);
-                        toast.success("Roles synced with bundle modules");
-                      }}
-                    >
-                      Sync modules
-                    </Button>
-                    <NewRoleDialog
-                      onCreate={(name, desc) => {
-                        const id = createRole(bundle.id, name, desc);
-                        setActiveRoleId(id);
-                        toast.success("Role created");
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {bundleRoles.length === 0 && (
-                    <div className="text-xs text-muted-foreground">No roles yet — create one.</div>
-                  )}
-                  {bundleRoles.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => setActiveRoleId(r.id)}
-                      className={`group inline-flex items-center gap-2 pl-3 pr-1 py-1.5 rounded-lg border text-xs transition-colors ${
-                        r.id === activeRoleId
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "border-input bg-card hover:bg-muted"
-                      }`}
-                    >
-                      <Users className="size-3" />
-                      <span className="font-medium">{r.name}</span>
-                      {r.is_default && (
-                        <Badge variant="secondary" className="text-[9px] px-1 h-4">default</Badge>
-                      )}
-                      <span className="flex items-center">
-                        <span
-                          className="size-6 rounded grid place-items-center hover:bg-black/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name });
-                          }}
-                          role="button"
-                        >
-                          <Copy className="size-3" />
-                        </span>
-                        <span
-                          className="size-6 rounded grid place-items-center hover:bg-black/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name });
-                          }}
-                          role="button"
-                        >
-                          <Trash2 className="size-3" />
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </Card>
-
               {role ? (
                 <PermissionMatrix
                   role={role}
@@ -365,6 +309,165 @@ function NewRoleDialog({ onCreate }: { onCreate: (name: string, desc: string) =>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RolesSidebar({
+  bundle,
+  roles,
+  activeRoleId,
+  onSelect,
+  onSync,
+  onCreate,
+  onCopy,
+  onDelete,
+}: {
+  bundle: { id: string; name: string; module_ids: string[] };
+  roles: Role[];
+  activeRoleId: string;
+  onSelect: (id: string) => void;
+  onSync: () => void;
+  onCreate: (name: string, desc: string) => void;
+  onCopy: (r: Role) => void;
+  onDelete: (r: Role) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "permissions">("name");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = roles.filter(
+      (r) =>
+        !q ||
+        r.name.toLowerCase().includes(q) ||
+        r.description.toLowerCase().includes(q),
+    );
+    list = [...list].sort((a, b) => {
+      if (sortBy === "permissions") {
+        const ca = a.permissions.reduce(
+          (n, p) => n + (p.create ? 1 : 0) + (p.read ? 1 : 0) + (p.update ? 1 : 0) + (p.delete ? 1 : 0) + p.special.length,
+          0,
+        );
+        const cb = b.permissions.reduce(
+          (n, p) => n + (p.create ? 1 : 0) + (p.read ? 1 : 0) + (p.update ? 1 : 0) + (p.delete ? 1 : 0) + p.special.length,
+          0,
+        );
+        return cb - ca;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return list;
+  }, [roles, query, sortBy]);
+
+  return (
+    <Card className="p-0 h-fit overflow-hidden flex flex-col max-h-[calc(100vh-160px)]">
+      <div className="p-3 border-b border-border">
+        <div className="flex items-center gap-2 mb-2">
+          <Shield className="size-4 text-primary shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold truncate">{bundle.name}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {roles.length} role{roles.length === 1 ? "" : "s"} · {bundle.module_ids.length} modules
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <NewRoleDialog onCreate={onCreate} />
+          <Button variant="outline" size="sm" className="h-8" onClick={onSync} title="Sync modules">
+            Sync
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-2 border-b border-border flex items-center gap-1.5">
+        <div className="relative flex-1">
+          <Search className="size-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search roles…"
+            className="h-8 pl-7 text-xs"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
+          onClick={() => setSortBy(sortBy === "name" ? "permissions" : "name")}
+          title={`Sort by ${sortBy === "name" ? "permissions" : "name"}`}
+        >
+          <ArrowUpDown className="size-3.5" />
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-1.5">
+        {filtered.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-8">
+            {roles.length === 0 ? "No roles yet — create one." : "No roles match."}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {filtered.map((r) => {
+              const active = r.id === activeRoleId;
+              const grantCount = r.permissions.reduce(
+                (n, p) => n + (p.create ? 1 : 0) + (p.read ? 1 : 0) + (p.update ? 1 : 0) + (p.delete ? 1 : 0),
+                0,
+              );
+              return (
+                <div
+                  key={r.id}
+                  className={`group relative rounded-md border transition-colors cursor-pointer ${
+                    active
+                      ? "bg-primary/10 border-primary/40"
+                      : "border-transparent hover:bg-muted hover:border-border"
+                  }`}
+                  onClick={() => onSelect(r.id)}
+                >
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <Users className={`size-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium truncate">{r.name}</span>
+                        {r.is_default && (
+                          <Badge variant="secondary" className="text-[9px] px-1 h-3.5 shrink-0">
+                            default
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {grantCount} grant{grantCount === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                    <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                      <button
+                        className="size-6 rounded grid place-items-center hover:bg-background"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCopy(r);
+                        }}
+                        title="Duplicate"
+                      >
+                        <Copy className="size-3" />
+                      </button>
+                      <button
+                        className="size-6 rounded grid place-items-center hover:bg-background hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(r);
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
