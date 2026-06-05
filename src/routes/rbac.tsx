@@ -352,6 +352,72 @@ function RbacPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Unsynced changes confirmation */}
+          <AlertDialog
+            open={pendingSwitch !== null}
+            onOpenChange={(open) => {
+              if (!open) setPendingSwitch(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Unsynced role access changes</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You have unsynced changes on{" "}
+                  {dirtyRoleIds.size === 1 ? "1 role" : `${dirtyRoleIds.size} roles`}. Sync them
+                  now to apply to bundle modules, or discard to continue without saving.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPendingSwitch(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!pendingSwitch) return;
+                    if (pendingSwitch.type === "bundle") {
+                      clearDirtyForBundle(bundleId);
+                      setBundleId(pendingSwitch.targetId);
+                      const first = roles.find((r) => r.bundle_id === pendingSwitch.targetId);
+                      setActiveRoleId(first?.id ?? "");
+                    } else {
+                      if (activeRoleId) {
+                        setDirtyRoleIds((prev) => {
+                          const next = new Set(prev);
+                          next.delete(activeRoleId);
+                          return next;
+                        });
+                      }
+                      setActiveRoleId(pendingSwitch.targetId);
+                    }
+                    setPendingSwitch(null);
+                  }}
+                >
+                  Discard
+                </Button>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!pendingSwitch || !bundle) return;
+                    syncRolesWithBundle(bundle.id);
+                    clearDirtyForBundle(bundle.id);
+                    toast.success("Roles synced");
+                    if (pendingSwitch.type === "bundle") {
+                      setBundleId(pendingSwitch.targetId);
+                      const first = roles.find((r) => r.bundle_id === pendingSwitch.targetId);
+                      setActiveRoleId(first?.id ?? "");
+                    } else {
+                      setActiveRoleId(pendingSwitch.targetId);
+                    }
+                    setPendingSwitch(null);
+                  }}
+                >
+                  Sync &amp; continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
