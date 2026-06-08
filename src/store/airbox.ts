@@ -749,7 +749,7 @@ export const useAirbox = create<AirboxState>()(
           set({
             roles: [
               ...get().roles,
-              { id, bundle_id: bundleId, name, description, is_default: false, permissions: perms },
+              { id, bundle_id: bundleId, name, description, is_default: false, is_active: false, permissions: perms },
             ],
           });
           return id;
