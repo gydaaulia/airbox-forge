@@ -775,6 +775,7 @@ export const useAirbox = create<AirboxState>()(
                 id: newId,
                 name: `${src.name} (Copy)`,
                 is_default: false,
+                is_active: false,
                 permissions: src.permissions.map((p) => ({ ...p, special: [...p.special] })),
               },
             ],
