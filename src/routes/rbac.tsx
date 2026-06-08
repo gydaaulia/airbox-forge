@@ -616,6 +616,15 @@ function RolesSidebar({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium truncate">{r.name}</span>
+                        {!r.is_active && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 h-3.5 shrink-0 border-amber-500/60 text-amber-600 bg-amber-500/10"
+                            title="Inactive — click Sync to activate"
+                          >
+                            inactive
+                          </Badge>
+                        )}
                         {r.is_default && (
                           <Badge variant="secondary" className="text-[9px] px-1 h-3.5 shrink-0">
                             default
