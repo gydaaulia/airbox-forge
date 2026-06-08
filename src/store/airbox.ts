@@ -320,6 +320,7 @@ function seedRoles(bundles: Bundle[]): Role[] {
         name: r.name,
         description: r.description,
         is_default: true,
+        is_active: true,
         permissions: perms,
       });
     }
