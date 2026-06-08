@@ -242,7 +242,8 @@ function RbacPage() {
             onCreate={(name, desc) => {
               const id = createRole(bundle.id, name, desc);
               setActiveRoleId(id);
-              toast.success("Role created");
+              markDirty(id);
+              toast.success("Role created (inactive). Click Sync to activate.");
             }}
             onCopy={(r) => setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name })}
             onDelete={(r) => setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name })}
