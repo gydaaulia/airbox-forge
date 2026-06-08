@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAirbox,
   SPECIAL_ACTIONS,
