@@ -145,6 +145,17 @@ function RbacPage() {
     toast.success("Roles synced with bundle modules");
   };
 
+  // Warn user before tab close / refresh / back-out when there are unsynced changes
+  useEffect(() => {
+    if (!hasDirtyInBundle) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasDirtyInBundle]);
+
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
     [bundle, modules],
