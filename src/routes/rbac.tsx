@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAirbox,
   SPECIAL_ACTIONS,
@@ -145,6 +145,17 @@ function RbacPage() {
     toast.success("Roles synced with bundle modules");
   };
 
+  // Warn user before tab close / refresh / back-out when there are unsynced changes
+  useEffect(() => {
+    if (!hasDirtyInBundle) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasDirtyInBundle]);
+
   const bundleModules = useMemo(
     () => (bundle ? modules.filter((m) => bundle.module_ids.includes(m.id)) : []),
     [bundle, modules],
@@ -242,7 +253,8 @@ function RbacPage() {
             onCreate={(name, desc) => {
               const id = createRole(bundle.id, name, desc);
               setActiveRoleId(id);
-              toast.success("Role created");
+              markDirty(id);
+              toast.success("Role created (inactive). Click Sync to activate.");
             }}
             onCopy={(r) => setConfirmAction({ type: "copy", roleId: r.id, roleName: r.name })}
             onDelete={(r) => setConfirmAction({ type: "delete", roleId: r.id, roleName: r.name })}
@@ -615,6 +627,15 @@ function RolesSidebar({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium truncate">{r.name}</span>
+                        {!r.is_active && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 h-3.5 shrink-0 border-amber-500/60 text-amber-600 bg-amber-500/10"
+                            title="Inactive — click Sync to activate"
+                          >
+                            inactive
+                          </Badge>
+                        )}
                         {r.is_default && (
                           <Badge variant="secondary" className="text-[9px] px-1 h-3.5 shrink-0">
                             default

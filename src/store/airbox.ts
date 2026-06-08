@@ -73,6 +73,7 @@ export interface Role {
   name: string;
   description: string;
   is_default: boolean;
+  is_active: boolean;
   permissions: ModulePermission[];
 }
 
@@ -319,6 +320,7 @@ function seedRoles(bundles: Bundle[]): Role[] {
         name: r.name,
         description: r.description,
         is_default: true,
+        is_active: true,
         permissions: perms,
       });
     }
@@ -747,7 +749,7 @@ export const useAirbox = create<AirboxState>()(
           set({
             roles: [
               ...get().roles,
-              { id, bundle_id: bundleId, name, description, is_default: false, permissions: perms },
+              { id, bundle_id: bundleId, name, description, is_default: false, is_active: false, permissions: perms },
             ],
           });
           return id;
@@ -773,6 +775,7 @@ export const useAirbox = create<AirboxState>()(
                 id: newId,
                 name: `${src.name} (Copy)`,
                 is_default: false,
+                is_active: false,
                 permissions: src.permissions.map((p) => ({ ...p, special: [...p.special] })),
               },
             ],
@@ -854,7 +857,7 @@ export const useAirbox = create<AirboxState>()(
                     special: [],
                   },
               );
-              return { ...r, permissions: next };
+              return { ...r, is_active: true, permissions: next };
             }),
           });
         },
