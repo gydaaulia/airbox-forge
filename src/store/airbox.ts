@@ -857,7 +857,7 @@ export const useAirbox = create<AirboxState>()(
                     special: [],
                   },
               );
-              return { ...r, permissions: next };
+              return { ...r, is_active: true, permissions: next };
             }),
           });
         },
