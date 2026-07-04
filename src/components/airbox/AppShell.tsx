@@ -46,9 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="px-3 flex flex-col gap-1">
           {NAV.map((item) => {
             const active =
-              item.to === "/"
-                ? pathname === "/"
-                : pathname === item.to || pathname.startsWith(item.to + "/");
+              pathname === item.to || pathname.startsWith(item.to + "/");
             const Icon = item.icon;
             return (
               <Link
