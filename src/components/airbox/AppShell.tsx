@@ -12,12 +12,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/modules", label: "Module Library", icon: Boxes },
   { to: "/bundles", label: "Product Bundles", icon: Package },
   { to: "/rbac", label: "Roles & Permissions", icon: Shield },
-  { to: "/companies", label: "Companies", icon: Building2 },
 ] as const;
+
+// Unused icons kept as no-op refs to avoid import churn
+void LayoutDashboard; void Building2;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
