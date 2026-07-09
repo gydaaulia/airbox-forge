@@ -1,4 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -8,17 +9,29 @@ import {
   Search,
   Sparkles,
   Shield,
+  ChevronDown,
+  FilePlus2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+type NavChild = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem =
+  | { to: string; label: string; icon: React.ComponentType<{ className?: string }>; children?: undefined }
+  | { label: string; icon: React.ComponentType<{ className?: string }>; children: NavChild[]; to?: undefined };
+
+const NAV: NavItem[] = [
   { to: "/modules", label: "Module Library", icon: Boxes },
   { to: "/bundles", label: "Product Bundles", icon: Package },
   { to: "/rbac", label: "Roles & Permissions", icon: Shield },
-] as const;
+  {
+    label: "Company",
+    icon: Building2,
+    children: [{ to: "/company/registration", label: "Company Registration", icon: FilePlus2 }],
+  },
+];
 
 // Unused icons kept as no-op refs to avoid import churn
-void LayoutDashboard; void Building2;
+void LayoutDashboard;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
