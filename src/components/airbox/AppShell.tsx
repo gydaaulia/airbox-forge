@@ -102,3 +102,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+function SidebarNav({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const item of NAV) {
+      if (item.children) {
+        init[item.label] = item.children.some((c) => pathname.startsWith(c.to));
+      }
+    }
+    return init;
+  });
+
+  return (
+    <nav className="px-3 flex flex-col gap-1">
+      {NAV.map((item) => {
+        const Icon = item.icon;
+        if (item.children) {
+          const groupActive = item.children.some(
+            (c) => pathname === c.to || pathname.startsWith(c.to + "/"),
+          );
+          const isOpen = open[item.label] ?? groupActive;
+          return (
+            <div key={item.label} className="flex flex-col">
+              <button
+                onClick={() => setOpen((o) => ({ ...o, [item.label]: !isOpen }))}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  groupActive
+                    ? "text-white"
+                    : "text-sidebar-foreground/80 hover:text-white hover:bg-sidebar-accent/60",
+                )}
+              >
+                <Icon className="size-4" />
+                <span className="flex-1 text-left">{item.label}</span>
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 transition-transform",
+                    isOpen ? "rotate-0" : "-rotate-90",
+                  )}
+                />
+              </button>
+              {isOpen && (
+                <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-sidebar-border/60 pl-2">
+                  {item.children.map((c) => {
+                    const active = pathname === c.to || pathname.startsWith(c.to + "/");
+                    const CIcon = c.icon;
+                    return (
+                      <Link
+                        key={c.to}
+                        to={c.to}
+                        className={cn(
+                          "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] transition-colors",
+                          active
+                            ? "bg-sidebar-accent text-white"
+                            : "text-sidebar-foreground/70 hover:text-white hover:bg-sidebar-accent/60",
+                        )}
+                      >
+                        <CIcon className="size-3.5" />
+                        <span>{c.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+        const active = pathname === item.to || pathname.startsWith(item.to + "/");
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={cn(
+              "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              active
+                ? "bg-sidebar-accent text-white"
+                : "text-sidebar-foreground/80 hover:text-white hover:bg-sidebar-accent/60",
+            )}
+          >
+            <Icon className="size-4" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
