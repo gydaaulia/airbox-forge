@@ -56,28 +56,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="px-3 flex flex-col gap-1">
-          {NAV.map((item) => {
-            const active =
-              pathname === item.to || pathname.startsWith(item.to + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-white"
-                    : "text-sidebar-foreground/80 hover:text-white hover:bg-sidebar-accent/60",
-                )}
-              >
-                <Icon className="size-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <SidebarNav pathname={pathname} />
+
 
         <div className="mt-auto p-4">
           <div className="rounded-xl border border-sidebar-border/70 bg-sidebar-accent/40 p-4">
