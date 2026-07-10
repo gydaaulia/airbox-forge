@@ -16,6 +16,7 @@ import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompanyRegistrationRouteImport } from './routes/company.registration'
+import { Route as CompanyListRouteImport } from './routes/company.list'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
@@ -55,6 +56,11 @@ const CompanyRegistrationRoute = CompanyRegistrationRouteImport.update({
   path: '/registration',
   getParentRoute: () => CompanyRoute,
 } as any)
+const CompanyListRoute = CompanyListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => CompanyRoute,
+} as any)
 const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
   id: '/$companyId',
   path: '/$companyId',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
+    | '/company/list'
     | '/company/registration'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
+    | '/company/list'
     | '/company/registration'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
+    | '/company/list'
     | '/company/registration'
   fileRoutesById: FileRoutesById
 }
@@ -208,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanyRegistrationRouteImport
       parentRoute: typeof CompanyRoute
     }
+    '/company/list': {
+      id: '/company/list'
+      path: '/list'
+      fullPath: '/company/list'
+      preLoaderRoute: typeof CompanyListRouteImport
+      parentRoute: typeof CompanyRoute
+    }
     '/companies/$companyId': {
       id: '/companies/$companyId'
       path: '/$companyId'
@@ -256,10 +275,12 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
 )
 
 interface CompanyRouteChildren {
+  CompanyListRoute: typeof CompanyListRoute
   CompanyRegistrationRoute: typeof CompanyRegistrationRoute
 }
 
 const CompanyRouteChildren: CompanyRouteChildren = {
+  CompanyListRoute: CompanyListRoute,
   CompanyRegistrationRoute: CompanyRegistrationRoute,
 }
 
@@ -278,13 +299,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
