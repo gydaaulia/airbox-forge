@@ -69,69 +69,95 @@ function EditCompanyPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="p-5 lg:col-span-2">
           <h3 className="font-semibold">General Information</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <p className="text-xs text-muted-foreground mt-1">Basic details about your organization</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
             <Field label="Company Name">
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. PT Airbox Indonesia"
               />
             </Field>
             <Field label="Company Code">
               <Input
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
+                placeholder="AIR-ID"
               />
             </Field>
             <Field label="Industry">
-              <Input
+              <select
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
-              />
+                className="w-full h-9 rounded-lg border border-input bg-card text-sm px-2.5"
+              >
+                <option>Select Industry</option>
+                <option>Logistics & Supply Chain</option>
+                <option>Manufacturing</option>
+                <option>Retail & E-commerce</option>
+                <option>Financial Services</option>
+                <option>Technology</option>
+              </select>
             </Field>
-            <Field label="Employees">
-              <Input
+            <Field label="Number of Employees">
+              <select
                 value={form.employees}
                 onChange={(e) => setForm({ ...form, employees: e.target.value })}
-              />
+                className="w-full h-9 rounded-lg border border-input bg-card text-sm px-2.5"
+              >
+                <option>Range</option>
+                <option>1 - 50</option>
+                <option>51 - 200</option>
+                <option>201 - 500</option>
+                <option>501 - 1000</option>
+                <option>1000+</option>
+              </select>
             </Field>
             <Field label="NPWP">
               <Input
                 value={form.npwp ?? ""}
                 onChange={(e) => setForm({ ...form, npwp: e.target.value })}
+                placeholder="00.000.000.0-000.000"
               />
             </Field>
             <Field label="NIB">
               <Input
                 value={form.nib ?? ""}
                 onChange={(e) => setForm({ ...form, nib: e.target.value })}
+                placeholder="Registration Number"
               />
             </Field>
           </div>
 
-          <h3 className="font-semibold mt-6">Contact</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            <Field label="Email">
-              <Input
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </Field>
-            <Field label="Phone">
-              <Input
-                value={form.phone ?? ""}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-            </Field>
+          <h3 className="font-semibold mt-6">Contact & Banking</h3>
+          <p className="text-xs text-muted-foreground mt-1">Reach details and your official bank account</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
             <Field label="Website">
               <Input
                 value={form.website ?? ""}
                 onChange={(e) => setForm({ ...form, website: e.target.value })}
+                placeholder="https://airbox.com"
               />
             </Field>
-            <Field label="Address" className="sm:col-span-2">
+            <Field label="Email">
+              <Input
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="corporate@airbox.com"
+              />
+            </Field>
+            <Field label="Phone Number">
+              <Input
+                value={form.phone ?? ""}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="+62 21 0000 0000"
+              />
+            </Field>
+            <Field label="Address" className="sm:col-span-3">
               <Input
                 value={form.address ?? ""}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Main Office Address"
               />
             </Field>
           </div>
@@ -143,12 +169,20 @@ function EditCompanyPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Bank Name">
-                <Input
+                <select
                   value={form.bank.name}
                   onChange={(e) =>
                     setForm({ ...form, bank: { ...form.bank, name: e.target.value } })
                   }
-                />
+                  className="w-full h-9 rounded-lg border border-input bg-card text-sm px-2.5"
+                >
+                  <option>Select Bank</option>
+                  <option>BCA</option>
+                  <option>Mandiri</option>
+                  <option>BRI</option>
+                  <option>BNI</option>
+                  <option>CIMB Niaga</option>
+                </select>
               </Field>
               <Field label="Account Number">
                 <Input
@@ -156,14 +190,16 @@ function EditCompanyPage() {
                   onChange={(e) =>
                     setForm({ ...form, bank: { ...form.bank, number: e.target.value } })
                   }
+                  placeholder="e.g. 1234567890"
                 />
               </Field>
-              <Field label="Holder">
+              <Field label="Account Holder Name">
                 <Input
                   value={form.bank.holder}
                   onChange={(e) =>
                     setForm({ ...form, bank: { ...form.bank, holder: e.target.value } })
                   }
+                  placeholder="e.g. PT Airbox Indonesia"
                 />
               </Field>
             </div>
