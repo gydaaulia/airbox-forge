@@ -1,10 +1,22 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useCompanies, TONE_MAP, formatRegDate } from "@/store/companies";
 import {
   Search,
   SlidersHorizontal,
@@ -17,6 +29,7 @@ import {
   MinusCircle,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
 } from "lucide-react";
 
 export const Route = createFileRoute("/company/list")({
@@ -29,54 +42,23 @@ export const Route = createFileRoute("/company/list")({
   component: CompanyListPage,
 });
 
-type Row = {
-  id: string;
-  name: string;
-  email: string;
-  code: string;
-  industry: string;
-  regDate: string; // ISO
-  status: "active" | "inactive";
-  tone: string; // avatar tone
-};
-
-const ROWS: Row[] = [
-  { id: "1", name: "PT Wahana Digital", email: "hello@wahanadigital.id", code: "WHD-ID", industry: "Technology", regDate: "2025-03-14", status: "inactive", tone: "sky" },
-  { id: "2", name: "PT Indo Cargo Express", email: "ops@indocargo.id", code: "ICE-ID", industry: "Logistics & Supply Chain", regDate: "2025-01-30", status: "active", tone: "violet" },
-  { id: "3", name: "PT Nusantara Tech", email: "hello@nusantaratech.id", code: "NST-ID", industry: "Technology", regDate: "2024-06-10", status: "inactive", tone: "emerald" },
-  { id: "4", name: "PT Garuda Logistics", email: "info@garudalogistics.id", code: "GRL-ID", industry: "Aviation & Aerospace", regDate: "2024-03-22", status: "active", tone: "amber" },
-  { id: "5", name: "PT Airbox Indonesia", email: "corporate@airbox.id", code: "AIR-ID", industry: "Logistics & Supply Chain", regDate: "2024-01-15", status: "active", tone: "rose" },
-  { id: "6", name: "PT Sentosa Retail", email: "cs@sentosaretail.id", code: "SNR-ID", industry: "Retail", regDate: "2023-11-04", status: "inactive", tone: "cyan" },
-  { id: "7", name: "PT Mitra Konstruksi", email: "office@mitrakonstruksi.id", code: "MTK-ID", industry: "Construction", regDate: "2023-08-19", status: "active", tone: "indigo" },
-];
-
-const TONE: Record<string, string> = {
-  sky: "from-sky-500 to-sky-400",
-  violet: "from-violet-500 to-violet-400",
-  emerald: "from-emerald-500 to-emerald-400",
-  amber: "from-amber-500 to-amber-400",
-  rose: "from-rose-500 to-rose-400",
-  cyan: "from-cyan-500 to-cyan-400",
-  indigo: "from-indigo-500 to-indigo-400",
-};
-
 const PAGE_SIZE = 5;
 
-function fmt(iso: string) {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
-}
-
 function CompanyListPage() {
+  const items = useCompanies((s) => s.items);
+  const remove = useCompanies((s) => s.remove);
+  const navigate = useNavigate();
+
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [sortDesc, setSortDesc] = useState(true);
   const [page, setPage] = useState(1);
   const [openFilter, setOpenFilter] = useState(false);
+  const [toDelete, setToDelete] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = ROWS.filter((r) => {
+    const list = items.filter((r) => {
       if (status !== "all" && r.status !== status) return false;
       if (!term) return true;
       return (
@@ -90,12 +72,14 @@ function CompanyListPage() {
       sortDesc ? b.regDate.localeCompare(a.regDate) : a.regDate.localeCompare(b.regDate),
     );
     return list;
-  }, [q, status, sortDesc]);
+  }, [items, q, status, sortDesc]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
   const pageRows = filtered.slice(start, start + PAGE_SIZE);
+
+  const target = toDelete ? items.find((c) => c.id === toDelete) : null;
 
   return (
     <div>
@@ -111,7 +95,6 @@ function CompanyListPage() {
         }
       />
 
-      {/* Search + filters bar */}
       <div className="flex flex-col md:flex-row gap-2 mb-4">
         <div className="flex-1 relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -126,11 +109,7 @@ function CompanyListPage() {
           />
         </div>
         <div className="relative">
-          <Button
-            variant="outline"
-            className="h-10 gap-1.5"
-            onClick={() => setOpenFilter((o) => !o)}
-          >
+          <Button variant="outline" className="h-10 gap-1.5" onClick={() => setOpenFilter((o) => !o)}>
             <SlidersHorizontal className="size-4" />
             Filters
             {status !== "all" && (
@@ -161,11 +140,7 @@ function CompanyListPage() {
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          className="h-10 gap-1.5"
-          onClick={() => setSortDesc((v) => !v)}
-        >
+        <Button variant="outline" className="h-10 gap-1.5" onClick={() => setSortDesc((v) => !v)}>
           <Calendar className="size-4" />
           Date {sortDesc ? "↓" : "↑"}
         </Button>
@@ -179,6 +154,7 @@ function CompanyListPage() {
                 <th className="text-left font-semibold px-5 py-3">Company</th>
                 <th className="text-left font-semibold px-4 py-3">Code</th>
                 <th className="text-left font-semibold px-4 py-3">Industry</th>
+                <th className="text-left font-semibold px-4 py-3">Subscription</th>
                 <th className="text-left font-semibold px-4 py-3">
                   <button
                     onClick={() => setSortDesc((v) => !v)}
@@ -199,7 +175,7 @@ function CompanyListPage() {
                       <div
                         className={cn(
                           "size-9 rounded-lg bg-gradient-to-br grid place-items-center text-white text-sm font-semibold shrink-0",
-                          TONE[r.tone] ?? TONE.sky,
+                          TONE_MAP[r.tone] ?? TONE_MAP.sky,
                         )}
                       >
                         {r.name.replace(/^PT\s+/, "").charAt(0)}
@@ -216,10 +192,36 @@ function CompanyListPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-foreground/90">{r.industry}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="size-3.5 text-muted-foreground" />
+                      <div>
+                        <div className="text-xs font-medium">{r.subscription.planName}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span
+                            className={cn(
+                              "inline-block size-1.5 rounded-full",
+                              r.subscription.status === "active" ? "bg-emerald-500" : "bg-muted-foreground/40",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[10px] font-medium capitalize",
+                              r.subscription.status === "active"
+                                ? "text-emerald-600"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {r.subscription.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="size-3.5" />
-                      {fmt(r.regDate)}
+                      {formatRegDate(r.regDate)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -237,18 +239,21 @@ function CompanyListPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         title="View"
+                        onClick={() => navigate({ to: "/company/$companyId", params: { companyId: r.id } })}
                         className="size-8 grid place-items-center rounded-md text-sky-600 hover:bg-sky-500/10"
                       >
                         <Eye className="size-4" />
                       </button>
                       <button
                         title="Edit"
+                        onClick={() => navigate({ to: "/company/$companyId/edit", params: { companyId: r.id } })}
                         className="size-8 grid place-items-center rounded-md text-muted-foreground hover:bg-muted"
                       >
                         <Pencil className="size-4" />
                       </button>
                       <button
                         title="Delete"
+                        onClick={() => setToDelete(r.id)}
                         className="size-8 grid place-items-center rounded-md text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="size-4" />
@@ -259,7 +264,7 @@ function CompanyListPage() {
               ))}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-14 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="px-5 py-14 text-center text-sm text-muted-foreground">
                     No companies match your filters.
                   </td>
                 </tr>
@@ -268,7 +273,6 @@ function CompanyListPage() {
           </table>
         </div>
 
-        {/* Footer / pagination */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-card">
           <div className="text-xs text-muted-foreground">
             {filtered.length === 0
@@ -311,6 +315,34 @@ function CompanyListPage() {
           </div>
         </div>
       </Card>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {target
+                ? `${target.name} (${target.code}) will be removed along with its structure and subscription record. This cannot be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (target) {
+                  remove(target.id);
+                  toast.success(`Deleted ${target.name}`);
+                }
+                setToDelete(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

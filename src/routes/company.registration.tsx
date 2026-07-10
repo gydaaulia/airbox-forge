@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useCompanies } from "@/store/companies";
 import { PageHeader } from "@/components/airbox/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,8 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 function CompanyRegistrationPage() {
   const [step, setStep] = useState<StepKey>("info");
   const idx = STEPS.findIndex((s) => s.key === step);
+  const addCompany = useCompanies((s) => s.add);
+  const navigate = useNavigate();
 
   // Company Information
   const [name, setName] = useState("PT Airbox Indonesia");
@@ -179,7 +182,38 @@ function CompanyRegistrationPage() {
 
   const complete = () => {
     if (!canComplete) return;
+    const newId = addCompany({
+      name,
+      code,
+      email: email || `contact@${(code || "company").toLowerCase()}.id`,
+      industry,
+      employees,
+      npwp,
+      nib,
+      website,
+      phone,
+      address,
+      bank: { name: bankName, number: accountNumber, holder: accountHolder },
+      status: "active",
+      subscription: {
+        planId: plan.id,
+        planName: plan.name,
+        price: plan.price,
+        status: "active",
+        billingCycle: "monthly",
+      },
+      structure: {
+        departments: departments.map((d) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          divisions: d.divisions.map((v) => ({ id: v.id, name: v.name, users: v.users })),
+        })),
+        projects: projects.map((p) => ({ id: p.id, name: p.name, groups: p.groups })),
+      },
+    });
     toast.success(`Company "${name}" registered with ${plan.name} plan`);
+    navigate({ to: "/company/$companyId", params: { companyId: newId } });
   };
 
   const addDepartment = () => {
