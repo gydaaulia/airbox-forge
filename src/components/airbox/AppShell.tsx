@@ -11,6 +11,7 @@ import {
   Shield,
   ChevronDown,
   FilePlus2,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,10 @@ const NAV: NavItem[] = [
   {
     label: "Company",
     icon: Building2,
-    children: [{ to: "/company/registration", label: "Company Registration", icon: FilePlus2 }],
+    children: [
+      { to: "/company/list", label: "Company List", icon: ListChecks },
+      { to: "/company/registration", label: "Company Registration", icon: FilePlus2 },
+    ],
   },
 ];
 
