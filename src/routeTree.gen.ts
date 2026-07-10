@@ -17,9 +17,12 @@ import { Route as BundlesRouteImport } from './routes/bundles'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompanyRegistrationRouteImport } from './routes/company.registration'
 import { Route as CompanyListRouteImport } from './routes/company.list'
+import { Route as CompanyCompanyIdRouteImport } from './routes/company.$companyId'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as BundlesBundleIdRouteImport } from './routes/bundles.$bundleId'
 import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
+import { Route as CompanyCompanyIdIndexRouteImport } from './routes/company.$companyId.index'
+import { Route as CompanyCompanyIdEditRouteImport } from './routes/company.$companyId.edit'
 
 const RbacRoute = RbacRouteImport.update({
   id: '/rbac',
@@ -61,6 +64,11 @@ const CompanyListRoute = CompanyListRouteImport.update({
   path: '/list',
   getParentRoute: () => CompanyRoute,
 } as any)
+const CompanyCompanyIdRoute = CompanyCompanyIdRouteImport.update({
+  id: '/$companyId',
+  path: '/$companyId',
+  getParentRoute: () => CompanyRoute,
+} as any)
 const CompaniesCompanyIdRoute = CompaniesCompanyIdRouteImport.update({
   id: '/$companyId',
   path: '/$companyId',
@@ -76,6 +84,16 @@ const AcceptInviteTokenRoute = AcceptInviteTokenRouteImport.update({
   path: '/accept-invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyCompanyIdIndexRoute = CompanyCompanyIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CompanyCompanyIdRoute,
+} as any)
+const CompanyCompanyIdEditRoute = CompanyCompanyIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => CompanyCompanyIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,8 +105,11 @@ export interface FileRoutesByFullPath {
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/$companyId': typeof CompanyCompanyIdRouteWithChildren
   '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
+  '/company/$companyId/edit': typeof CompanyCompanyIdEditRoute
+  '/company/$companyId/': typeof CompanyCompanyIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +123,8 @@ export interface FileRoutesByTo {
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
+  '/company/$companyId/edit': typeof CompanyCompanyIdEditRoute
+  '/company/$companyId': typeof CompanyCompanyIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +137,11 @@ export interface FileRoutesById {
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/bundles/$bundleId': typeof BundlesBundleIdRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
+  '/company/$companyId': typeof CompanyCompanyIdRouteWithChildren
   '/company/list': typeof CompanyListRoute
   '/company/registration': typeof CompanyRegistrationRoute
+  '/company/$companyId/edit': typeof CompanyCompanyIdEditRoute
+  '/company/$companyId/': typeof CompanyCompanyIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,8 +155,11 @@ export interface FileRouteTypes {
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
+    | '/company/$companyId'
     | '/company/list'
     | '/company/registration'
+    | '/company/$companyId/edit'
+    | '/company/$companyId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +173,8 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/company/list'
     | '/company/registration'
+    | '/company/$companyId/edit'
+    | '/company/$companyId'
   id:
     | '__root__'
     | '/'
@@ -155,8 +186,11 @@ export interface FileRouteTypes {
     | '/accept-invite/$token'
     | '/bundles/$bundleId'
     | '/companies/$companyId'
+    | '/company/$companyId'
     | '/company/list'
     | '/company/registration'
+    | '/company/$companyId/edit'
+    | '/company/$companyId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -227,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanyListRouteImport
       parentRoute: typeof CompanyRoute
     }
+    '/company/$companyId': {
+      id: '/company/$companyId'
+      path: '/$companyId'
+      fullPath: '/company/$companyId'
+      preLoaderRoute: typeof CompanyCompanyIdRouteImport
+      parentRoute: typeof CompanyRoute
+    }
     '/companies/$companyId': {
       id: '/companies/$companyId'
       path: '/$companyId'
@@ -247,6 +288,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/accept-invite/$token'
       preLoaderRoute: typeof AcceptInviteTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/company/$companyId/': {
+      id: '/company/$companyId/'
+      path: '/'
+      fullPath: '/company/$companyId/'
+      preLoaderRoute: typeof CompanyCompanyIdIndexRouteImport
+      parentRoute: typeof CompanyCompanyIdRoute
+    }
+    '/company/$companyId/edit': {
+      id: '/company/$companyId/edit'
+      path: '/edit'
+      fullPath: '/company/$companyId/edit'
+      preLoaderRoute: typeof CompanyCompanyIdEditRouteImport
+      parentRoute: typeof CompanyCompanyIdRoute
     }
   }
 }
@@ -274,12 +329,27 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
   CompaniesRouteChildren,
 )
 
+interface CompanyCompanyIdRouteChildren {
+  CompanyCompanyIdEditRoute: typeof CompanyCompanyIdEditRoute
+  CompanyCompanyIdIndexRoute: typeof CompanyCompanyIdIndexRoute
+}
+
+const CompanyCompanyIdRouteChildren: CompanyCompanyIdRouteChildren = {
+  CompanyCompanyIdEditRoute: CompanyCompanyIdEditRoute,
+  CompanyCompanyIdIndexRoute: CompanyCompanyIdIndexRoute,
+}
+
+const CompanyCompanyIdRouteWithChildren =
+  CompanyCompanyIdRoute._addFileChildren(CompanyCompanyIdRouteChildren)
+
 interface CompanyRouteChildren {
+  CompanyCompanyIdRoute: typeof CompanyCompanyIdRouteWithChildren
   CompanyListRoute: typeof CompanyListRoute
   CompanyRegistrationRoute: typeof CompanyRegistrationRoute
 }
 
 const CompanyRouteChildren: CompanyRouteChildren = {
+  CompanyCompanyIdRoute: CompanyCompanyIdRouteWithChildren,
   CompanyListRoute: CompanyListRoute,
   CompanyRegistrationRoute: CompanyRegistrationRoute,
 }
@@ -299,13 +369,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
