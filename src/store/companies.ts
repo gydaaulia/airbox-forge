@@ -4,12 +4,22 @@ import { persist } from "zustand/middleware";
 export type CompanyStatus = "active" | "inactive";
 export type BillingCycle = "monthly" | "yearly";
 
-export type Division = { id: string; name: string; users?: number };
+export type Division = {
+  id: string;
+  name: string;
+  users?: number;
+  /** If set, this division is a sub-division of the parent division within the same department. */
+  parentId?: string | null;
+};
 export type Department = {
   id: string;
   name: string;
   code: string;
   divisions: Division[];
+  /** Optional department-level headcount that is NOT assigned to any division (e.g. staff reporting directly to the department head). */
+  users?: number;
+  /** If set, this department reports to another department (e.g. Finance reports to CEO/HQ department). Null / undefined = top-level under Company Root. */
+  parentId?: string | null;
 };
 export type ProjectItem = { id: string; name: string; groups: number };
 
