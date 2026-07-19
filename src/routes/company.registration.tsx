@@ -60,8 +60,16 @@ const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ classNam
   { key: "review", label: "Review", icon: CheckCircle2 },
 ];
 
-type Division = { id: string; name: string; users?: number };
-type Department = { id: string; name: string; code: string; divisions: Division[]; open?: boolean };
+type Division = { id: string; name: string; users?: number; parentId?: string | null };
+type Department = {
+  id: string;
+  name: string;
+  code: string;
+  divisions: Division[];
+  open?: boolean;
+  users?: number;
+  parentId?: string | null;
+};
 
 type Plan = {
   id: string;
