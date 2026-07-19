@@ -24,8 +24,20 @@ import {
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-export type DivisionDraft = { id: string; name: string; users?: number };
-export type DepartmentDraft = { id: string; name: string; code: string; divisions: DivisionDraft[] };
+export type DivisionDraft = {
+  id: string;
+  name: string;
+  users?: number;
+  parentId?: string | null;
+};
+export type DepartmentDraft = {
+  id: string;
+  name: string;
+  code: string;
+  divisions: DivisionDraft[];
+  users?: number;
+  parentId?: string | null;
+};
 export type ProjectDraft = { id: string; name: string; groups: number };
 
 /* -------------------- ADD DEPARTMENT DIALOG -------------------- */
