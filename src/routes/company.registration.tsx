@@ -512,24 +512,33 @@ function CompanyRegistrationPage() {
                   <div className="flex flex-col gap-2">
                     {departments.map((d) => (
                       <div key={d.id} className="rounded-xl border border-border overflow-hidden">
-                        <button
-                          onClick={() => toggleDept(d.id)}
-                          className="w-full flex items-center gap-2 p-3 hover:bg-muted/40 text-left"
-                        >
-                          {d.open ? (
-                            <ChevronDown className="size-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="size-4 text-muted-foreground" />
-                          )}
-                          <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
-                            <Network className="size-3.5 text-primary" />
-                          </div>
-                          <div className="text-sm font-semibold flex-1">
-                            {d.name}
-                            <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{d.code}</span>
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">{d.divisions.length} div</div>
-                        </button>
+                        <div className="flex items-center gap-2 p-3 hover:bg-muted/40">
+                          <button
+                            onClick={() => toggleDept(d.id)}
+                            className="flex items-center gap-2 flex-1 text-left min-w-0"
+                          >
+                            {d.open ? (
+                              <ChevronDown className="size-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="size-4 text-muted-foreground" />
+                            )}
+                            <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
+                              <Network className="size-3.5 text-primary" />
+                            </div>
+                            <div className="text-sm font-semibold flex-1 truncate">
+                              {d.name}
+                              <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{d.code}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{d.divisions.length} div</div>
+                          </button>
+                          <button
+                            onClick={() => removeDepartment(d.id)}
+                            className="size-7 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                            title="Remove department"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                         {d.open && (
                           <div className="border-t border-border bg-muted/20 py-1">
                             {d.divisions.map((div) => (
