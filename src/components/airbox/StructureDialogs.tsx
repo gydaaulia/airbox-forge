@@ -204,8 +204,27 @@ export function AddDepartmentDialog({
                     <Plus className="size-3.5" /> Add
                   </Button>
                 </div>
+                {divisions.length > 0 && (
+                  <div className="mt-2">
+                    <Label className="text-[11px] font-medium text-muted-foreground">
+                      Sub-division of (optional)
+                    </Label>
+                    <select
+                      value={divParentId}
+                      onChange={(e) => setDivParentId(e.target.value)}
+                      className="mt-1 w-full h-8 rounded-lg border border-input bg-card text-xs px-2.5"
+                    >
+                      <option value="">— Top-level division under this department —</option>
+                      {divisions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Divisions are optional — you can add them later.
+                  Divisions are optional — leave sub-division empty to keep them top-level.
                 </p>
               </div>
 
@@ -215,28 +234,39 @@ export function AddDepartmentDialog({
                     No divisions added yet.
                   </div>
                 )}
-                {divisions.map((d) => (
-                  <div
-                    key={d.id}
-                    className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
-                  >
-                    <div className="size-6 rounded-md bg-pink-100 dark:bg-pink-950/30 grid place-items-center">
-                      <UserRound className="size-3 text-pink-600" />
-                    </div>
-                    <div className="text-sm flex-1">{d.name}</div>
-                    {d.users != null && (
-                      <Badge variant="outline" className="text-[10px]">
-                        <Users className="size-3 mr-1" /> {d.users}
-                      </Badge>
-                    )}
-                    <button
-                      onClick={() => removeDiv(d.id)}
-                      className="size-6 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                {divisions.map((d) => {
+                  const parent = d.parentId ? divisions.find((x) => x.id === d.parentId) : null;
+                  return (
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
+                      style={parent ? { marginLeft: 16 } : undefined}
                     >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="size-6 rounded-md bg-pink-100 dark:bg-pink-950/30 grid place-items-center">
+                        <UserRound className="size-3 text-pink-600" />
+                      </div>
+                      <div className="text-sm flex-1">
+                        {d.name}
+                        {parent && (
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            ↳ under {parent.name}
+                          </span>
+                        )}
+                      </div>
+                      {d.users != null && (
+                        <Badge variant="outline" className="text-[10px]">
+                          <Users className="size-3 mr-1" /> {d.users}
+                        </Badge>
+                      )}
+                      <button
+                        onClick={() => removeDiv(d.id)}
+                        className="size-6 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
