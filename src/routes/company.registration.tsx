@@ -60,8 +60,16 @@ const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ classNam
   { key: "review", label: "Review", icon: CheckCircle2 },
 ];
 
-type Division = { id: string; name: string; users?: number };
-type Department = { id: string; name: string; code: string; divisions: Division[]; open?: boolean };
+type Division = { id: string; name: string; users?: number; parentId?: string | null };
+type Department = {
+  id: string;
+  name: string;
+  code: string;
+  divisions: Division[];
+  open?: boolean;
+  users?: number;
+  parentId?: string | null;
+};
 
 type Plan = {
   id: string;
@@ -216,7 +224,14 @@ function CompanyRegistrationPage() {
           id: d.id,
           name: d.name,
           code: d.code,
-          divisions: d.divisions.map((v) => ({ id: v.id, name: v.name, users: v.users })),
+          users: d.users,
+          parentId: d.parentId ?? null,
+          divisions: d.divisions.map((v) => ({
+            id: v.id,
+            name: v.name,
+            users: v.users,
+            parentId: v.parentId ?? null,
+          })),
         })),
         projects: projects.map((p) => ({ id: p.id, name: p.name, groups: p.groups })),
       },
@@ -233,7 +248,15 @@ function CompanyRegistrationPage() {
   const handleAddDepartment = (d: DepartmentDraft) => {
     setDepartments((prev) => [
       ...prev,
-      { id: d.id, name: d.name, code: d.code, open: true, divisions: d.divisions },
+      {
+        id: d.id,
+        name: d.name,
+        code: d.code,
+        open: true,
+        divisions: d.divisions,
+        users: d.users,
+        parentId: d.parentId ?? null,
+      },
     ]);
     toast.success(`Department "${d.name}" added`);
   };
@@ -783,6 +806,7 @@ function CompanyRegistrationPage() {
         open={deptDialogOpen}
         onOpenChange={setDeptDialogOpen}
         onSubmit={handleAddDepartment}
+        existingDepartments={departments.map((d) => ({ id: d.id, name: d.name, code: d.code }))}
       />
       <AddProjectDialog
         open={projDialogOpen}
@@ -797,11 +821,14 @@ function CompanyRegistrationPage() {
           id: d.id,
           name: d.name,
           code: d.code,
+          users: d.users,
+          parentId: d.parentId ?? null,
           divisions: d.divisions,
         }))}
         projects={projects}
         defaultTab={structureTab}
       />
+
     </div>
   );
 }
