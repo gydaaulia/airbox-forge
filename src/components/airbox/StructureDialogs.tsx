@@ -145,6 +145,37 @@ export function AddDepartmentDialog({
                   maxLength={6}
                 />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs font-medium">
+                  Department Headcount <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <Input
+                  value={deptUsers}
+                  onChange={(e) => setDeptUsers(e.target.value.replace(/\D/g, ""))}
+                  placeholder="e.g. 4 (staff not in a division)"
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">
+                  Reports To <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <select
+                  value={parentId}
+                  onChange={(e) => setParentId(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-input bg-card text-sm px-2.5"
+                >
+                  <option value="">— Reports directly to Company Root —</option>
+                  {existingDepartments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Use this to nest departments (e.g. Finance & Operations reporting to a CEO Office).
+                </p>
+              </div>
             </div>
           )}
 
