@@ -629,6 +629,101 @@ export function HierarchyDialog({
   );
 }
 
+function deptHeadcount(d: DepartmentDraft): number {
+  return (d.users ?? 0) + d.divisions.reduce((s, v) => s + (v.users ?? 0), 0);
+}
+
+function DivisionNode({
+  division,
+  siblings,
+}: {
+  division: DivisionDraft;
+  siblings: DivisionDraft[];
+}) {
+  const children = siblings.filter((s) => s.parentId === division.id);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 bg-card">
+        <div className="size-6 rounded-md bg-pink-100 dark:bg-pink-950/30 grid place-items-center">
+          <UserRound className="size-3 text-pink-600" />
+        </div>
+        <div className="text-xs flex-1 truncate">{division.name}</div>
+        {division.users != null && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Users className="size-3" /> {division.users}
+          </span>
+        )}
+      </div>
+      {children.length > 0 && (
+        <div className="ml-4 pl-3 border-l border-dashed border-border flex flex-col gap-1.5">
+          {children.map((c) => (
+            <DivisionNode key={c.id} division={c} siblings={siblings} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DepartmentCard({
+  department,
+  allDepartments,
+}: {
+  department: DepartmentDraft;
+  allDepartments: DepartmentDraft[];
+}) {
+  const topDivs = department.divisions.filter((v) => !v.parentId);
+  const subDepts = allDepartments.filter((x) => x.parentId === department.id);
+  const total = deptHeadcount(department);
+  return (
+    <div className="flex flex-col items-center">
+      <div className="w-full rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-muted/40">
+          <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
+            <Network className="size-3.5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold truncate">{department.name}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {department.code}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <Badge variant="outline" className="text-[10px]">
+              {department.divisions.length} div
+            </Badge>
+            {total > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Users className="size-3" /> {total}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="p-2 flex flex-col gap-1.5">
+          {topDivs.map((v) => (
+            <DivisionNode key={v.id} division={v} siblings={department.divisions} />
+          ))}
+          {department.divisions.length === 0 && (
+            <div className="text-[11px] text-muted-foreground text-center py-2">
+              No divisions
+            </div>
+          )}
+        </div>
+      </div>
+      {subDepts.length > 0 && (
+        <>
+          <Connector />
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3">
+            {subDepts.map((sd) => (
+              <DepartmentCard key={sd.id} department={sd} allDepartments={allDepartments} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function OrgTree({
   companyName,
   departments,
@@ -643,51 +738,17 @@ function OrgTree({
       </div>
     );
   }
+  const roots = departments.filter(
+    (d) => !d.parentId || !departments.some((x) => x.id === d.parentId),
+  );
+  const totalUsers = departments.reduce((s, d) => s + deptHeadcount(d), 0);
   return (
     <div className="flex flex-col items-center">
-      <RootNode label={companyName || "Company"} />
+      <RootNode label={`${companyName || "Company"}${totalUsers ? ` · ${totalUsers} people` : ""}`} />
       <Connector />
       <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {departments.map((d) => (
-          <div key={d.id} className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-muted/40">
-              <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
-                <Network className="size-3.5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">{d.name}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {d.code}
-                </div>
-              </div>
-              <Badge variant="outline" className="text-[10px]">
-                {d.divisions.length} div
-              </Badge>
-            </div>
-            <div className="p-2 flex flex-col gap-1.5">
-              {d.divisions.map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
-                >
-                  <div className="size-6 rounded-md bg-pink-100 dark:bg-pink-950/30 grid place-items-center">
-                    <UserRound className="size-3 text-pink-600" />
-                  </div>
-                  <div className="text-xs flex-1 truncate">{v.name}</div>
-                  {v.users != null && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Users className="size-3" /> {v.users}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {d.divisions.length === 0 && (
-                <div className="text-[11px] text-muted-foreground text-center py-2">
-                  No divisions
-                </div>
-              )}
-            </div>
-          </div>
+        {roots.map((d) => (
+          <DepartmentCard key={d.id} department={d} allDepartments={departments} />
         ))}
       </div>
     </div>
