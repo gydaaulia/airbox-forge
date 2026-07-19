@@ -26,7 +26,16 @@ import {
   UserRound,
   Users,
   FolderKanban,
+  Maximize2,
+  Trash2,
 } from "lucide-react";
+import {
+  AddDepartmentDialog,
+  AddProjectDialog,
+  HierarchyDialog,
+  type DepartmentDraft,
+  type ProjectDraft,
+} from "@/components/airbox/StructureDialogs";
 
 export const Route = createFileRoute("/company/registration")({
   head: () => ({
