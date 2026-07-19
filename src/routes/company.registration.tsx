@@ -777,6 +777,31 @@ function CompanyRegistrationPage() {
           </Button>
         )}
       </div>
+
+      {/* Structure Dialogs */}
+      <AddDepartmentDialog
+        open={deptDialogOpen}
+        onOpenChange={setDeptDialogOpen}
+        onSubmit={handleAddDepartment}
+      />
+      <AddProjectDialog
+        open={projDialogOpen}
+        onOpenChange={setProjDialogOpen}
+        onSubmit={handleAddProject}
+      />
+      <HierarchyDialog
+        open={hierarchyOpen}
+        onOpenChange={setHierarchyOpen}
+        companyName={name}
+        departments={departments.map((d) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          divisions: d.divisions,
+        }))}
+        projects={projects}
+        defaultTab={structureTab}
+      />
     </div>
   );
 }
