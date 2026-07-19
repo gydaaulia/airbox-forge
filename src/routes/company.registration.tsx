@@ -565,15 +565,23 @@ function CompanyRegistrationPage() {
                       <h3 className="font-semibold">Projects</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">Optional projects and their groups</p>
                     </div>
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() =>
-                        setProjects((p) => [...p, { id: uid(), name: "New Project", groups: 1 }])
-                      }
-                    >
-                      <Plus className="size-3.5" /> Add Project
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHierarchyOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <Maximize2 className="size-3.5" /> View Hierarchy
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setProjDialogOpen(true)}
+                      >
+                        <Plus className="size-3.5" /> Add Project
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {projects.map((p) => (
@@ -583,8 +591,20 @@ function CompanyRegistrationPage() {
                         </div>
                         <div className="text-sm font-semibold flex-1">{p.name}</div>
                         <Badge variant="outline" className="text-[10px]">{p.groups} groups</Badge>
+                        <button
+                          onClick={() => removeProject(p.id)}
+                          className="size-7 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                          title="Remove project"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </div>
                     ))}
+                    {projects.length === 0 && (
+                      <div className="text-center text-xs text-muted-foreground py-6">
+                        No projects yet. Click "Add Project" to create one.
+                      </div>
+                    )}
                   </div>
                 </>
               )}
