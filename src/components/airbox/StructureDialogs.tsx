@@ -48,26 +48,34 @@ export function AddDepartmentDialog({
   open,
   onOpenChange,
   onSubmit,
+  existingDepartments = [],
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (d: DepartmentDraft) => void;
+  existingDepartments?: { id: string; name: string; code: string }[];
 }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [parentId, setParentId] = useState<string>("");
+  const [deptUsers, setDeptUsers] = useState<string>("");
   const [divisions, setDivisions] = useState<DivisionDraft[]>([]);
   const [divName, setDivName] = useState("");
   const [divUsers, setDivUsers] = useState<string>("");
+  const [divParentId, setDivParentId] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       setStep(0);
       setName("");
       setCode("");
+      setParentId("");
+      setDeptUsers("");
       setDivisions([]);
       setDivName("");
       setDivUsers("");
+      setDivParentId("");
     }
   }, [open]);
 
@@ -77,15 +85,31 @@ export function AddDepartmentDialog({
     if (!divName.trim()) return;
     setDivisions((d) => [
       ...d,
-      { id: uid(), name: divName.trim(), users: divUsers ? Number(divUsers) : undefined },
+      {
+        id: uid(),
+        name: divName.trim(),
+        users: divUsers ? Number(divUsers) : undefined,
+        parentId: divParentId || null,
+      },
     ]);
     setDivName("");
     setDivUsers("");
+    setDivParentId("");
   };
-  const removeDiv = (id: string) => setDivisions((d) => d.filter((x) => x.id !== id));
+  const removeDiv = (id: string) =>
+    setDivisions((d) =>
+      d.filter((x) => x.id !== id).map((x) => (x.parentId === id ? { ...x, parentId: null } : x)),
+    );
 
   const submit = () => {
-    onSubmit({ id: uid(), name: name.trim(), code: code.trim().toUpperCase(), divisions });
+    onSubmit({
+      id: uid(),
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      divisions,
+      users: deptUsers ? Number(deptUsers) : undefined,
+      parentId: parentId || null,
+    });
     onOpenChange(false);
   };
 
