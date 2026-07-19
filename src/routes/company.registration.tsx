@@ -248,7 +248,15 @@ function CompanyRegistrationPage() {
   const handleAddDepartment = (d: DepartmentDraft) => {
     setDepartments((prev) => [
       ...prev,
-      { id: d.id, name: d.name, code: d.code, open: true, divisions: d.divisions },
+      {
+        id: d.id,
+        name: d.name,
+        code: d.code,
+        open: true,
+        divisions: d.divisions,
+        users: d.users,
+        parentId: d.parentId ?? null,
+      },
     ]);
     toast.success(`Department "${d.name}" added`);
   };
