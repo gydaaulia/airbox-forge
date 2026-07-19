@@ -225,16 +225,32 @@ function CompanyRegistrationPage() {
     navigate({ to: "/company/$companyId", params: { companyId: newId } });
   };
 
-  const addDepartment = () => {
-    setDepartments((d) => [
-      ...d,
-      { id: uid(), name: "New Department", code: "NEW", open: true, divisions: [] },
+  // Dialogs
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [projDialogOpen, setProjDialogOpen] = useState(false);
+  const [hierarchyOpen, setHierarchyOpen] = useState(false);
+
+  const handleAddDepartment = (d: DepartmentDraft) => {
+    setDepartments((prev) => [
+      ...prev,
+      { id: d.id, name: d.name, code: d.code, open: true, divisions: d.divisions },
     ]);
+    toast.success(`Department "${d.name}" added`);
   };
+  const handleAddProject = (p: ProjectDraft) => {
+    setProjects((prev) => [...prev, p]);
+    toast.success(`Project "${p.name}" added`);
+  };
+  const removeDepartment = (id: string) =>
+    setDepartments((d) => d.filter((x) => x.id !== id));
+  const removeProject = (id: string) =>
+    setProjects((p) => p.filter((x) => x.id !== id));
   const addDivision = (deptId: string) => {
     setDepartments((d) =>
       d.map((x) =>
-        x.id === deptId ? { ...x, divisions: [...x.divisions, { id: uid(), name: "New Division" }] } : x,
+        x.id === deptId
+          ? { ...x, divisions: [...x.divisions, { id: uid(), name: "New Division" }] }
+          : x,
       ),
     );
   };
