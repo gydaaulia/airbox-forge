@@ -483,11 +483,19 @@ function CompanyRegistrationPage() {
                         Departments are top-level — each contains multiple divisions
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="text-[11px] text-muted-foreground mr-1">
                         {departments.length} depts · {totalDivisions} divs
                       </div>
-                      <Button size="sm" onClick={addDepartment} className="gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHierarchyOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <Maximize2 className="size-3.5" /> View Hierarchy
+                      </Button>
+                      <Button size="sm" onClick={() => setDeptDialogOpen(true)} className="gap-1.5">
                         <Plus className="size-3.5" /> Add Department
                       </Button>
                     </div>
