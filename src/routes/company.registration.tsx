@@ -26,7 +26,16 @@ import {
   UserRound,
   Users,
   FolderKanban,
+  Maximize2,
+  Trash2,
 } from "lucide-react";
+import {
+  AddDepartmentDialog,
+  AddProjectDialog,
+  HierarchyDialog,
+  type DepartmentDraft,
+  type ProjectDraft,
+} from "@/components/airbox/StructureDialogs";
 
 export const Route = createFileRoute("/company/registration")({
   head: () => ({
@@ -216,16 +225,32 @@ function CompanyRegistrationPage() {
     navigate({ to: "/company/$companyId", params: { companyId: newId } });
   };
 
-  const addDepartment = () => {
-    setDepartments((d) => [
-      ...d,
-      { id: uid(), name: "New Department", code: "NEW", open: true, divisions: [] },
+  // Dialogs
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+  const [projDialogOpen, setProjDialogOpen] = useState(false);
+  const [hierarchyOpen, setHierarchyOpen] = useState(false);
+
+  const handleAddDepartment = (d: DepartmentDraft) => {
+    setDepartments((prev) => [
+      ...prev,
+      { id: d.id, name: d.name, code: d.code, open: true, divisions: d.divisions },
     ]);
+    toast.success(`Department "${d.name}" added`);
   };
+  const handleAddProject = (p: ProjectDraft) => {
+    setProjects((prev) => [...prev, p]);
+    toast.success(`Project "${p.name}" added`);
+  };
+  const removeDepartment = (id: string) =>
+    setDepartments((d) => d.filter((x) => x.id !== id));
+  const removeProject = (id: string) =>
+    setProjects((p) => p.filter((x) => x.id !== id));
   const addDivision = (deptId: string) => {
     setDepartments((d) =>
       d.map((x) =>
-        x.id === deptId ? { ...x, divisions: [...x.divisions, { id: uid(), name: "New Division" }] } : x,
+        x.id === deptId
+          ? { ...x, divisions: [...x.divisions, { id: uid(), name: "New Division" }] }
+          : x,
       ),
     );
   };
@@ -458,11 +483,19 @@ function CompanyRegistrationPage() {
                         Departments are top-level — each contains multiple divisions
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="text-[11px] text-muted-foreground mr-1">
                         {departments.length} depts · {totalDivisions} divs
                       </div>
-                      <Button size="sm" onClick={addDepartment} className="gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHierarchyOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <Maximize2 className="size-3.5" /> View Hierarchy
+                      </Button>
+                      <Button size="sm" onClick={() => setDeptDialogOpen(true)} className="gap-1.5">
                         <Plus className="size-3.5" /> Add Department
                       </Button>
                     </div>
@@ -479,24 +512,33 @@ function CompanyRegistrationPage() {
                   <div className="flex flex-col gap-2">
                     {departments.map((d) => (
                       <div key={d.id} className="rounded-xl border border-border overflow-hidden">
-                        <button
-                          onClick={() => toggleDept(d.id)}
-                          className="w-full flex items-center gap-2 p-3 hover:bg-muted/40 text-left"
-                        >
-                          {d.open ? (
-                            <ChevronDown className="size-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="size-4 text-muted-foreground" />
-                          )}
-                          <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
-                            <Network className="size-3.5 text-primary" />
-                          </div>
-                          <div className="text-sm font-semibold flex-1">
-                            {d.name}
-                            <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{d.code}</span>
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">{d.divisions.length} div</div>
-                        </button>
+                        <div className="flex items-center gap-2 p-3 hover:bg-muted/40">
+                          <button
+                            onClick={() => toggleDept(d.id)}
+                            className="flex items-center gap-2 flex-1 text-left min-w-0"
+                          >
+                            {d.open ? (
+                              <ChevronDown className="size-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="size-4 text-muted-foreground" />
+                            )}
+                            <div className="size-7 rounded-md bg-primary/10 grid place-items-center">
+                              <Network className="size-3.5 text-primary" />
+                            </div>
+                            <div className="text-sm font-semibold flex-1 truncate">
+                              {d.name}
+                              <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{d.code}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{d.divisions.length} div</div>
+                          </button>
+                          <button
+                            onClick={() => removeDepartment(d.id)}
+                            className="size-7 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                            title="Remove department"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                         {d.open && (
                           <div className="border-t border-border bg-muted/20 py-1">
                             {d.divisions.map((div) => (
@@ -532,15 +574,23 @@ function CompanyRegistrationPage() {
                       <h3 className="font-semibold">Projects</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">Optional projects and their groups</p>
                     </div>
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() =>
-                        setProjects((p) => [...p, { id: uid(), name: "New Project", groups: 1 }])
-                      }
-                    >
-                      <Plus className="size-3.5" /> Add Project
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHierarchyOpen(true)}
+                        className="gap-1.5"
+                      >
+                        <Maximize2 className="size-3.5" /> View Hierarchy
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setProjDialogOpen(true)}
+                      >
+                        <Plus className="size-3.5" /> Add Project
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {projects.map((p) => (
@@ -550,8 +600,20 @@ function CompanyRegistrationPage() {
                         </div>
                         <div className="text-sm font-semibold flex-1">{p.name}</div>
                         <Badge variant="outline" className="text-[10px]">{p.groups} groups</Badge>
+                        <button
+                          onClick={() => removeProject(p.id)}
+                          className="size-7 rounded-md hover:bg-destructive/10 text-destructive grid place-items-center"
+                          title="Remove project"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </div>
                     ))}
+                    {projects.length === 0 && (
+                      <div className="text-center text-xs text-muted-foreground py-6">
+                        No projects yet. Click "Add Project" to create one.
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -715,6 +777,31 @@ function CompanyRegistrationPage() {
           </Button>
         )}
       </div>
+
+      {/* Structure Dialogs */}
+      <AddDepartmentDialog
+        open={deptDialogOpen}
+        onOpenChange={setDeptDialogOpen}
+        onSubmit={handleAddDepartment}
+      />
+      <AddProjectDialog
+        open={projDialogOpen}
+        onOpenChange={setProjDialogOpen}
+        onSubmit={handleAddProject}
+      />
+      <HierarchyDialog
+        open={hierarchyOpen}
+        onOpenChange={setHierarchyOpen}
+        companyName={name}
+        departments={departments.map((d) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          divisions: d.divisions,
+        }))}
+        projects={projects}
+        defaultTab={structureTab}
+      />
     </div>
   );
 }
