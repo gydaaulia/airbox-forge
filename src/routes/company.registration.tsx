@@ -806,6 +806,7 @@ function CompanyRegistrationPage() {
         open={deptDialogOpen}
         onOpenChange={setDeptDialogOpen}
         onSubmit={handleAddDepartment}
+        existingDepartments={departments.map((d) => ({ id: d.id, name: d.name, code: d.code }))}
       />
       <AddProjectDialog
         open={projDialogOpen}
@@ -820,11 +821,14 @@ function CompanyRegistrationPage() {
           id: d.id,
           name: d.name,
           code: d.code,
+          users: d.users,
+          parentId: d.parentId ?? null,
           divisions: d.divisions,
         }))}
         projects={projects}
         defaultTab={structureTab}
       />
+
     </div>
   );
 }
